@@ -805,11 +805,20 @@ input::placeholder {
 
 .nd {
   cursor: pointer;
+  outline: none;
 }
 
-.nd:hover rect, .nd:hover circle {
+.nd:hover rect, .nd:hover circle,
+.nd:focus-visible rect, .nd:focus-visible circle {
   stroke: #ffffff !important;
-  stroke-width: 1.5 !important;
+  stroke-width: 2 !important;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.6));
+}
+
+#sl li:focus-visible,
+.floor-dropdown div:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: -2px;
 }
 
 .connector-active circle {
@@ -825,12 +834,24 @@ input::placeholder {
   pointer-events: none;
 }
 
+@keyframes route-flow {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 #route {
   fill: none;
   stroke: var(--route-color);
-  stroke-width: 3;
+  stroke-width: 3.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke-dasharray: 8 4;
+  animation: route-flow 0.8s linear infinite;
+  filter: drop-shadow(0 0 4px rgba(56, 189, 248, 0.5));
 }
 
 #cur {
@@ -838,6 +859,7 @@ input::placeholder {
   stroke: #ffffff;
   stroke-width: 2;
   display: none;
+  filter: drop-shadow(0 0 5px rgba(22, 163, 74, 0.8));
 }
 
 /* Responsive */
