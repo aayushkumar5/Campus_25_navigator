@@ -242,6 +242,41 @@ let R = null;
 let S = [];
 let si = 0;
 let wcm = null;
+let sf = false;
+
+// ---- Recents (localStorage) ----
+let recents = [];
+try { recents = JSON.parse(localStorage.getItem('c25r') || '[]'); } catch (e) {}
+function addRecent(r) {
+  if (!r || r.nearest) return;
+  recents = [{ f: r.f, id: r.id }, ...recents.filter(x => !(x.f === r.f && x.id === r.id))].slice(0, 5);
+  try { localStorage.setItem('c25r', JSON.stringify(recents)); } catch (e) {}
+}
+
+// ---- Shareable URL helpers ----
+const FC_LIST = FC;
+const rs = r => r.nearest ? 'wc-' + r.nearest : r.id + '@' + FC[r.f];
+function pr(s) {
+  if (!s) return null;
+  if (s.startsWith('wc-')) return { nearest: s.slice(3) };
+  const [id, f] = s.split('@');
+  const fi = f ? FC_LIST.indexOf(f) : F.findIndex(X => X.N[id]);
+  return fi >= 0 && F[fi] && F[fi].N[id] ? { f: fi, id } : null;
+}
+function linkFor() {
+  const u = new URLSearchParams();
+  if (from) u.set('from', rs(from));
+  if (to) u.set('to', rs(to));
+  if (conn === 'lift') u.set('via', 'lift');
+  const s = u.toString();
+  return location.href.split(/[?#]/)[0] + (s ? '?' + s : '');
+}
+function syncUrl() {
+  try {
+    const s = linkFor().split('?')[1];
+    history.replaceState(null, '', s ? '?' + s : location.pathname);
+  } catch (e) {}
+}
 
 const nm = r => {
   if (!r) return 'Not set';
@@ -291,7 +326,7 @@ function show(fl) {
     const isConnector = isInterFloor && n.id === R.r.via;
 
     const g = mk('g', {
-      class: 'nd' + (isConnector ? ' connector-active' : ''),
+      class: 'nd' + (isConnector ? ' connector-active' : '') + (wcm && n.t === wcm.g ? ' blink' : ''),
       'data-id': n.id
     }, $('nodes'));
 
@@ -550,6 +585,7 @@ function refresh() {
   document.querySelectorAll('.qn button').forEach(b => {
     b.disabled = !from;
   });
+  syncUrl();
 }
 
 function setActive(a) {
@@ -572,6 +608,7 @@ function clearRoute() {
 }
 
 function setRef(r) {
+  addRecent(r);
   if (active === 's') {
     from = r;
     setActive('d');
@@ -605,13 +642,22 @@ function onNode(n) {
 // Universal search
 function items(q) {
   const o = [];
+  const has = (f, id) => o.some(x => x.f === f && x.id === id);
+
+  // Show recents at top when no query typed
+  if (!q) {
+    recents.filter(r => F[r.f] && F[r.f].N[r.id]).forEach(r => {
+      o.push({ ...r, rc: 1 });
+    });
+  }
+
   if (!q || 'washroom'.includes(q) || 'toilet'.includes(q)) {
     o.push({ wc: 1 });
   }
 
   F.forEach((X, f) => {
     Object.values(X.N).forEach(n => {
-      if (/[gf]/.test(n.t) || (/[sl]/.test(n.t) && f !== FL) || (!q && f !== FL)) return;
+      if (/[gf]/.test(n.t) || (/[sl]/.test(n.t) && f !== FL) || (!q && f !== FL) || has(f, n.id)) return;
       const fullText = (n.id + ' ' + lab(n) + ' ' + (KIND[n.t] || '')).toLowerCase();
       if (fullText.includes(q)) {
         o.push({ f, id: n.id });
@@ -619,12 +665,8 @@ function items(q) {
     });
   });
 
-  return o.sort((a, b) => {
-    const aExact = (a.id || '').toLowerCase() === q;
-    const bExact = (b.id || '').toLowerCase() === q;
-    if (aExact !== bExact) return bExact ? 1 : -1;
-    return (a.f === FL ? 0 : 1) - (b.f === FL ? 0 : 1);
-  }).slice(0, 30);
+  const rank = x => x.rc ? 0 : x.wc ? 1 : (x.id || '').toLowerCase() === q ? 2 : x.f === FL ? 3 : 4;
+  return o.sort((a, b) => rank(a) - rank(b)).slice(0, 30);
 }
 
 let activeDropdownIdx = -1;
@@ -651,6 +693,7 @@ function renderDD() {
       d.innerHTML = `
         <span>${lab(n)}</span>
         <span>
+          ${it.rc ? '<span class="bd rc">RECENT</span>' : ''}
           ${isExact ? '<span class="bd ex">EXACT</span>' : ''}
           ${isType ? '<span class="bd">TYPE</span>' : ''}
           <span class="bd">${KIND[n.t] || 'ROOM'}</span>
@@ -806,12 +849,15 @@ function calc() {
     return;
   }
 
+  // Step-free: force lift
+  const activConn = sf ? 'lift' : conn;
+
   let B = to;
   if (to.nearest) {
     let best = null;
     Object.values(F[from.f].N).forEach(n => {
       if (n.t === to.nearest) {
-        const r = legs(from, { f: from.f, id: n.id }, conn);
+        const r = legs(from, { f: from.f, id: n.id }, activConn);
         if (r && (!best || r.cost < best.r.cost)) {
           best = { r, B: { f: from.f, id: n.id } };
         }
@@ -829,9 +875,9 @@ function calc() {
     return;
   }
 
-  const r = legs(from, B, conn);
+  const r = legs(from, B, activConn);
   if (!r) {
-    toast(`No ${conn} path found between these floors`);
+    toast(`No ${activConn} path found between these floors`);
     return;
   }
 
@@ -843,7 +889,7 @@ function calc() {
 
   $('sum').innerHTML = `
     <b>Route: ${lab(nd(from))} to ${lab(nd(B))}</b>
-    <span>Total distance: ${m} m (${timeMin} min walk)${r.via ? ' via ' + (conn === 'lift' ? 'Lift ' : 'Stairs ') + r.via : ''}</span>
+    <span>Total distance: ${m} m (${timeMin} min walk)${r.via ? ' via ' + (activConn === 'lift' ? 'Lift ' : 'Stairs ') + r.via : ''}${sf ? ' · step-free' : ''}</span>
   `;
   $('sum').style.display = 'flex';
   $('steps').style.display = 'block';
@@ -931,8 +977,22 @@ document.querySelectorAll('#cn button').forEach(b => {
     conn = b.dataset.c;
     document.querySelectorAll('#cn button').forEach(x => x.classList.toggle('on', x === b));
     if (R) calc();
+    syncUrl();
   };
 });
+
+// Step-free mode toggle
+$('sf').onclick = () => {
+  sf = !sf;
+  $('sf').setAttribute('aria-pressed', sf);
+  // If step-free on, auto-select lift connector and disable stairs
+  document.querySelector('#cn [data-c=stairs]').disabled = sf;
+  if (sf) {
+    conn = 'lift';
+    document.querySelectorAll('#cn button').forEach(x => x.classList.toggle('on', x.dataset.c === 'lift'));
+  }
+  if (R) calc();
+};
 
 document.querySelectorAll('.qn button').forEach(b => {
   b.onclick = () => {
@@ -1024,10 +1084,51 @@ $('gear').onclick = () => svg.classList.toggle('nolab');
 
 addEventListener('resize', fit);
 
+// Read URL params on initial load (deep-link support)
+const URLP = new URLSearchParams(location.search);
+
 // Initial Load
 show(0);
 fit();
 setActive('s');
+
+// Restore from URL
+{
+  const a = pr(URLP.get('from'));
+  const b = pr(URLP.get('to'));
+  if (URLP.get('via') === 'lift') {
+    conn = 'lift';
+    document.querySelectorAll('#cn button').forEach(x => x.classList.toggle('on', x.dataset.c === 'lift'));
+  }
+  if (a && !a.nearest) { from = a; setActive('d'); }
+  if (b) to = b;
+  if (from || to) { show(from ? from.f : 0); refresh(); }
+  if (from && to) calc();
+}
+
+// Share / QR
+$('shr').onclick = () => {
+  const u = linkFor();
+  $('qrl').textContent = u;
+  try {
+    const q = qrcode(0, 'M');
+    q.addData(u);
+    q.make();
+    $('qrb').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+  } catch (e) {
+    $('qrb').textContent = 'QR unavailable';
+  }
+  $('qrm').hidden = false;
+};
+$('qrx').onclick = () => $('qrm').hidden = true;
+$('qrm').onclick = e => { if (e.target.id === 'qrm') $('qrm').hidden = true; };
+addEventListener('keydown', e => { if (e.key === 'Escape') $('qrm').hidden = true; });
+$('qrc').onclick = () => {
+  try {
+    navigator.clipboard.writeText($('qrl').textContent)
+      .then(() => toast('Link copied!'), () => toast('Copy failed'));
+  } catch (e) { toast('Copy not available'); }
+};
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

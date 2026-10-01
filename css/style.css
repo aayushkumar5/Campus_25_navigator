@@ -97,43 +97,48 @@ button:disabled {
   z-index: 20;
 }
 
-.control-cluster {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.tb {
+  height: 44px;
+  padding: 0 14px;
   background: var(--p);
-  padding: 4px;
   border: 1px solid var(--bd);
   border-radius: var(--radius);
-}
-
-.zoom-group {
-  display: flex;
-  gap: 4px;
-  border-left: 1px solid var(--bd);
-  padding-left: 4px;
-}
-
-.floor-select-wrap {
-  position: relative;
-}
-
-.floor-btn {
-  height: 42px;
-  padding: 0 14px;
-  background: var(--ac);
-  border: 1px solid #b45309;
-  border-radius: var(--radius);
+  font-size: 13px;
   font-weight: 600;
+}
+
+.tb:hover:not(:disabled) {
+  background: var(--p-hover);
+  border-color: #52525b;
+}
+
+.tb.ib {
+  width: 44px;
+  padding: 0;
+}
+
+/* Vertical Zoom Controls (right side) */
+#zoom {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
   gap: 6px;
-  color: #fff;
+  z-index: 15;
 }
 
-.floor-btn:hover {
-  background: #b45309;
+#zoom .ib {
+  width: 40px;
+  height: 40px;
+  background: var(--p);
+  border: 1px solid var(--bd);
+  font-size: 16px;
 }
 
-.floor-dropdown {
+/* Floor dropdown */
+#fm {
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
@@ -146,7 +151,7 @@ button:disabled {
   display: none;
 }
 
-.floor-dropdown div {
+#fm div {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -156,11 +161,11 @@ button:disabled {
   font-size: 13px;
 }
 
-.floor-dropdown div:hover {
+#fm div:hover {
   background: var(--p-hover);
 }
 
-.floor-dropdown div.on {
+#fm div.on {
   background: #27272a;
   border: 1px solid var(--ac);
   color: #fef08a;
@@ -858,6 +863,10 @@ input::placeholder {
     top: 8px;
   }
 
+  #zoom {
+    right: 8px;
+  }
+
   #bn {
     top: 56px;
     max-width: calc(100% - 16px);
@@ -869,13 +878,107 @@ input::placeholder {
     display: none;
   }
 
-  .floor-btn {
-    height: 36px;
+  .tb {
+    height: 38px;
     padding: 0 10px;
     font-size: 12px;
+  }
+
+  .tb.ib {
+    width: 38px;
   }
 
   .ib {
     height: 30px;
   }
+}
+
+/* ---- Step-Free Button ---- */
+.btn-sf {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx-dim);
+  border: 1px solid var(--bd);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.btn-sf[aria-pressed='true'] {
+  background: #052e16;
+  border-color: #166534;
+  color: #4ade80;
+}
+
+/* ---- QR / Share Modal ---- */
+#qrm {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 100;
+  display: grid;
+  place-items: center;
+}
+
+#qrm[hidden] {
+  display: none;
+}
+
+.mc {
+  background: var(--p);
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  padding: 24px;
+  max-width: min(360px, calc(100% - 32px));
+  text-align: center;
+}
+
+.mc h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+#qrb {
+  background: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  display: inline-block;
+  width: 200px;
+  margin-bottom: 10px;
+}
+
+#qrb svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+#qrl {
+  word-break: break-all;
+  font-size: 11px;
+  color: var(--tx-dim);
+  margin: 8px 0 12px;
+}
+
+/* RECENT badge color */
+.bd.rc {
+  background: #102a3a;
+  color: #7dd3fc;
+}
+
+/* Blinking washroom icons */
+@keyframes blink-wr {
+  from { opacity: 1; }
+  to { opacity: 0.2; }
+}
+
+.blink circle {
+  animation: blink-wr 0.6s infinite alternate;
+  stroke: #fff;
+  stroke-width: 3;
+}
+
+.blink {
+  filter: drop-shadow(0 0 5px #fff);
 }

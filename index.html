@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg">
+  <script src="js/vendor/qrcode.js"></script>
 </head>
 <body>
   <!-- Map Canvas -->
@@ -32,24 +33,24 @@
 
   <!-- Top Controls -->
   <header id="top">
-    <div class="control-cluster">
-      <button class="ib" id="gear" title="Toggle Labels" aria-label="Toggle Labels">Labels</button>
-      <button class="ib" id="btn-fit" title="Fit Map View" aria-label="Fit Map">Fit</button>
-      <div class="zoom-group">
-        <button class="ib" id="btn-zin" title="Zoom In" aria-label="Zoom In">+</button>
-        <button class="ib" id="btn-zout" title="Zoom Out" aria-label="Zoom Out">-</button>
-      </div>
-    </div>
+    <button class="tb" id="gear" title="Toggle Labels" aria-label="Toggle Labels" aria-pressed="true">Labels</button>
+    <button class="tb ib" id="shr" title="Share route / QR code" aria-label="Share route">Share</button>
 
     <!-- Floor Selector -->
-    <div class="floor-select-wrap">
-      <button id="fb" class="floor-btn" aria-haspopup="true" aria-expanded="false">
-        <span>Level:</span>
-        <b id="fl">GF</b>
+    <div style="position:relative">
+      <button class="tb" id="fb" aria-haspopup="true" aria-expanded="false">
+        Level: <b id="fl">GF</b>
       </button>
       <div id="fm" class="dd floor-dropdown" role="menu"></div>
     </div>
   </header>
+
+  <!-- Zoom Controls -->
+  <div id="zoom">
+    <button class="ib" id="btn-zin" title="Zoom In" aria-label="Zoom In">+</button>
+    <button class="ib" id="btn-zout" title="Zoom Out" aria-label="Zoom Out">-</button>
+    <button class="ib" id="btn-fit" title="Fit Map View" aria-label="Fit Map">&#8635;</button>
+  </div>
 
   <!-- Navigation Sidebar -->
   <main class="pn" id="side">
@@ -107,6 +108,7 @@
       <!-- Action Row -->
       <div class="action-row">
         <button class="ib swap-btn" id="sw" title="Swap Endpoints" aria-label="Swap">Swap</button>
+        <button id="sf" aria-pressed="false" title="Lift only, no stairs" class="btn-sf">Step-free</button>
         <button id="calc" class="btn-calculate">Calculate Route</button>
       </div>
 
@@ -187,6 +189,19 @@
 
   <!-- Toast -->
   <div id="toast" role="status"></div>
+
+  <!-- QR / Share Modal -->
+  <div id="qrm" role="dialog" aria-modal="true" aria-label="Share route" hidden>
+    <div class="mc">
+      <h2>Share Route</h2>
+      <div id="qrb"></div>
+      <p id="qrl"></p>
+      <div class="chips" style="justify-content:center">
+        <button id="qrc">Copy link</button>
+        <button id="qrx">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="js/main.js"></script>
 </body>
