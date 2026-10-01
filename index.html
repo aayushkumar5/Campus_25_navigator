@@ -1,0 +1,19 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>C25 Navigator - Campus 25</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#D34A09">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="public/icon.svg"></head><body>
+<svg id="map"><g id="vp"><g id="roads"></g><path id="route"/><g id="nodes"></g><circle id="cur" r="7" fill="#22c55e" stroke="#fff" stroke-width="2" style="display:none"/></g></svg>
+<div id="top"><button class="ib" id="gear" title="Toggle labels">⚙</button><div style="position:relative"><button id="fb" style="height:48px;padding:0 16px;background:var(--p);border-radius:14px">▦ <b id="fl">GF</b> ⌄</button><div id="fm" class="dd" style="left:auto;right:0;width:230px;top:56px;padding:6px;border-radius:18px"></div></div></div>
+<div class="pn" id="side"><h1>KIIT Campus 25 <button class="ib" id="col">‹</button></h1>
+<div class="body" id="sb"><div class="lb">● START</div><div class="fld"><input id="s" placeholder="Starting point..." autocomplete="off"><button class="x" id="sx" hidden>✕</button><div class="dd" id="sd"></div></div>
+<div class="lb" style="display:flex;justify-content:space-between;align-items:center">END <button class="ib" id="sw">⇅</button></div>
+<div class="fld"><input id="e" placeholder="Destination..." autocomplete="off"><button class="x" id="ex" hidden>✕</button><div class="dd" id="ed"></div></div>
+<button id="clr">Clear Route</button>
+<div class="lb" style="margin-top:18px">QUICK NAVIGATION (needs a start point)</div>
+<div class="qn"><button data-q="s">Nearest Stairs</button><button data-q="l">Nearest Lift</button><button data-q="g">Gents Washroom</button><button data-q="f">Ladies Washroom</button><button data-q="e">Nearest Exit</button><button data-q="x">Lobby / Library</button></div></div></div>
+<div class="pn" id="steps"><div class="st"><button class="ib" id="ic">📍</button><div class="t"><small id="sn"></small><span id="stx"></span></div><button class="ib" id="pv">‹</button><button class="ib" id="nx">›</button><button class="ib" id="ex2">⌄</button></div><ol id="sl"></ol></div>
+<div id="lg"><span><i style="background:#6366f1"></i>Block A</span><span><i style="background:#f97316"></i>Block B</span><span><i style="background:#22c55e"></i>Stairs</span><span><i style="background:#a855f7"></i>Lift</span><span><i style="background:#0ea5e9"></i>Gents</span><span><i style="background:#ec4899"></i>Ladies</span><span><i style="background:#eab308"></i>Entry</span></div>
+<div id="toast"></div>
+<script type="module" src="js/main.js"></script></body></html>
