@@ -50,6 +50,16 @@ html, body {
   cursor: grabbing;
 }
 
+/* Smooth Floor Transition Animation */
+@keyframes floorFade {
+  0% { opacity: 0.35; transform: scale(0.985); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.floor-fade {
+  animation: floorFade 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* Glassmorphism Panel Base */
 .pn {
   position: absolute;
@@ -201,7 +211,7 @@ button:disabled {
   display: none;
   z-index: 25;
   background: linear-gradient(135deg, #ea580c, #c2410c);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   padding: 10px 22px;
   border-radius: 999px;
   font-size: 12.5px;
@@ -211,12 +221,20 @@ button:disabled {
   box-shadow: 0 10px 25px rgba(217, 72, 15, 0.45);
   max-width: calc(100% - 160px);
   text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
   animation: bannerPulse 2s infinite ease-in-out;
+}
+
+#bn:hover {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  transform: translateX(-50%) scale(1.04);
+  box-shadow: 0 12px 30px rgba(217, 72, 15, 0.7);
 }
 
 @keyframes bannerPulse {
   0%, 100% { transform: translateX(-50%) scale(1); }
-  50% { transform: translateX(-50%) scale(1.02); }
+  50% { transform: translateX(-50%) scale(1.025); }
 }
 
 /* Sidebar */
@@ -910,6 +928,35 @@ input::placeholder {
 
 .blink {
   filter: drop-shadow(0 0 8px #fff);
+}
+
+/* Interactive Active Connector Node (Stairs/Lift) */
+@keyframes connectorPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px #00f2fe) drop-shadow(0 0 14px rgba(0, 242, 254, 0.7));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px #ffedd5) drop-shadow(0 0 24px rgba(217, 72, 15, 0.95));
+  }
+}
+
+.connector-active {
+  cursor: pointer !important;
+  animation: connectorPulse 1.3s infinite ease-in-out;
+}
+
+.connector-active circle {
+  stroke: #00f2fe !important;
+  stroke-width: 2.5 !important;
+  fill: #0c1824 !important;
+}
+
+.connector-tag text {
+  fill: #ffffff !important;
+  font-size: 6.5px !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.95);
+  pointer-events: none;
 }
 
 #route-glow {

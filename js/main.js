@@ -257,12 +257,17 @@ function toast(m) {
   setTimeout(() => { t.style.display = 'none'; }, 2200);
 }
 
-// Render active floor on SVG canvas
+// Render active floor on SVG canvas with smooth transition
 function show(fl) {
   FL = fl;
   const X = F[fl];
   $('roads').innerHTML = '';
   $('nodes').innerHTML = '';
+
+  // Trigger smooth visual transition animation on SVG viewport
+  vp.classList.remove('floor-fade');
+  void vp.offsetWidth;
+  vp.classList.add('floor-fade');
 
   // Draw Roads & Stubs
   X.segs.forEach(s => {
@@ -283,12 +288,17 @@ function show(fl) {
     }, $('roads'));
   });
 
+  // Check if active inter-floor connection exists
+  const isInterFloor = R && R.r && R.r.via;
+
   // Draw Nodes
   Object.values(X.N).forEach(n => {
     const isRoom = /[abtrc]/.test(n.t);
     const isBlinking = wcm && n.t === wcm.g;
+    const isConnector = isInterFloor && n.id === R.r.via;
+
     const g = mk('g', {
-      class: 'nd' + (isBlinking ? ' blink' : ''),
+      class: 'nd' + (isBlinking ? ' blink' : '') + (isConnector ? ' connector-active' : ''),
       'data-id': n.id
     }, $('nodes'));
 
@@ -311,9 +321,36 @@ function show(fl) {
     const gl = mk('g', { class: 'nl' }, g);
     mk('text', { x: n.x, y: n.y + (isRoom ? 21 : 22) }, gl).textContent = (n.id || '').toUpperCase();
 
+    // If active transition stair/lift, render interactive guidance badge above it
+    if (isConnector) {
+      const targetFloor = (FL === R.A.f ? R.B.f : R.A.f);
+      const tag = mk('g', { class: 'connector-tag' }, g);
+      mk('rect', {
+        x: n.x - 30, y: n.y - 25, width: 60, height: 13,
+        rx: 4, fill: '#0284c7', stroke: '#38bdf8', 'stroke-width': 1
+      }, tag);
+      mk('text', {
+        x: n.x, y: n.y - 16, 'text-anchor': 'middle'
+      }, tag).textContent = '⚡ TAP TO ' + FC[targetFloor];
+    }
+
     g.onclick = e => {
       e.stopPropagation();
       if (moved) return;
+
+      // If clicking the active stair/lift connector, flip to destination floor immediately!
+      if (isConnector) {
+        const targetFloor = (FL === R.A.f ? R.B.f : R.A.f);
+        const stepIdx = S.findIndex(s => s.f === targetFloor);
+        if (stepIdx >= 0) {
+          go(stepIdx);
+        } else {
+          show(targetFloor);
+        }
+        toast(`Switched to ${FN[targetFloor]} via ${n.id}`);
+        return;
+      }
+
       onNode(n);
     };
     n.el = g;
@@ -389,7 +426,7 @@ function banner() {
   } else if (R && R.r.via) {
     const cName = conn === 'lift' ? 'LIFT' : 'STAIRS';
     if (FL === R.A.f) {
-      t = `INTER-FLOOR · TAKE ${cName} ${R.r.via} → ${FN[R.B.f].toUpperCase()}`;
+      t = `INTER-FLOOR · TAKE ${cName} ${R.r.via} → ${FN[R.B.f].toUpperCase()} (TAP TO SWITCH)`;
     } else if (FL === R.B.f) {
       t = `INTER-FLOOR · CONTINUE FROM ${R.r.via} → DESTINATION`;
     }
@@ -397,6 +434,17 @@ function banner() {
   $('bn').textContent = t;
   $('bn').style.display = t ? 'block' : 'none';
 }
+
+// Banner click handler: instantly flip floors
+$('bn').onclick = () => {
+  if (R && R.r && R.r.via) {
+    const targetFloor = (FL === R.A.f ? R.B.f : R.A.f);
+    const stepIdx = S.findIndex(s => s.f === targetFloor);
+    if (stepIdx >= 0) go(stepIdx);
+    else show(targetFloor);
+    toast(`Switched to ${FN[targetFloor]} via ${R.r.via}`);
+  }
+};
 
 // ---- Directional Chevrons along Route ----
 function arrows(P) {
