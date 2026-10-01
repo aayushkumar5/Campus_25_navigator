@@ -3,30 +3,30 @@ import { D, L } from './data.js';
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
 
-// Color & Icon Maps
+// Color & Symbol Maps
 const COL = {
-  a: '#6366f1',
-  b: '#f97316',
-  t: '#14b8a6',
-  r: '#f43f5e',
-  c: '#8b5cf6',
-  s: '#22c55e',
-  l: '#a855f7',
-  g: '#0ea5e9',
-  f: '#ec4899',
-  e: '#eab308',
-  x: '#06b6d4',
-  w: '#38bdf8'
+  a: '#2563eb',
+  b: '#ea580c',
+  t: '#0d9488',
+  r: '#e11d48',
+  c: '#475569',
+  s: '#16a34a',
+  l: '#0891b2',
+  g: '#0284c7',
+  f: '#db2777',
+  e: '#d97706',
+  x: '#0284c7',
+  w: '#06b6d4'
 };
 
 const ICO = {
-  s: '🪜',
-  l: '🛗',
-  g: '🚹',
-  f: '🚺',
-  e: '🚪',
-  x: '🏛️',
-  w: '💧'
+  s: 'S',
+  l: 'L',
+  g: 'M',
+  f: 'W',
+  e: 'E',
+  x: 'F',
+  w: 'W'
 };
 
 const KIND = {
@@ -234,47 +234,42 @@ function legs(a, b, connType) {
 
 // ---- Application State ----
 let FL = 0;
-let active = 's'; // 's' (start) or 'd' (destination)
-let from = null;  // { f, id }
-let to = null;    // { f, id } or { nearest: 'g'|'f' }
-let conn = 'stairs'; // 'stairs' or 'lift'
-let R = null;     // Current calculated route object
-let S = [];       // Step-by-step instructions
-let si = 0;       // Current active step index
-let wcm = null;   // Washroom selection mode state
+let active = 's';
+let from = null;
+let to = null;
+let conn = 'stairs';
+let R = null;
+let S = [];
+let si = 0;
+let wcm = null;
 
 const nm = r => {
   if (!r) return 'Not set';
   if (r.nearest) return 'Nearest ' + (r.nearest === 'g' ? 'Gents' : 'Ladies') + ' Washroom';
   const node = nd(r);
-  return (node ? lab(node) : r.id) + ' · ' + FC[r.f];
+  return (node ? lab(node) : r.id) + ' (' + FC[r.f] + ')';
 };
 
 function toast(m) {
   const t = $('toast');
   t.textContent = m;
   t.style.display = 'block';
-  setTimeout(() => { t.style.display = 'none'; }, 2200);
+  setTimeout(() => { t.style.display = 'none'; }, 2000);
 }
 
-// Render active floor on SVG canvas with smooth transition
+// Render active floor on SVG canvas
 function show(fl) {
   FL = fl;
   const X = F[fl];
   $('roads').innerHTML = '';
   $('nodes').innerHTML = '';
 
-  // Trigger smooth visual transition animation on SVG viewport
-  vp.classList.remove('floor-fade');
-  void vp.offsetWidth;
-  vp.classList.add('floor-fade');
-
   // Draw Roads & Stubs
   X.segs.forEach(s => {
     mk('line', {
       x1: s.a[0], y1: s.a[1], x2: s.b[0], y2: s.b[1],
-      stroke: 'rgba(255, 255, 255, 0.12)',
-      'stroke-width': 3,
+      stroke: '#27272a',
+      'stroke-width': 2.5,
       'stroke-linecap': 'round'
     }, $('roads'));
   });
@@ -282,63 +277,59 @@ function show(fl) {
   X.stubs.forEach(([n, p]) => {
     mk('line', {
       x1: n.x, y1: n.y, x2: p[0], y2: p[1],
-      stroke: 'rgba(255, 255, 255, 0.08)',
-      'stroke-width': 2,
-      'stroke-dasharray': '3 3'
+      stroke: '#27272a',
+      'stroke-width': 1.5,
+      'stroke-dasharray': '2 2'
     }, $('roads'));
   });
 
-  // Check if active inter-floor connection exists
   const isInterFloor = R && R.r && R.r.via;
 
   // Draw Nodes
   Object.values(X.N).forEach(n => {
     const isRoom = /[abtrc]/.test(n.t);
-    const isBlinking = wcm && n.t === wcm.g;
     const isConnector = isInterFloor && n.id === R.r.via;
 
     const g = mk('g', {
-      class: 'nd' + (isBlinking ? ' blink' : '') + (isConnector ? ' connector-active' : ''),
+      class: 'nd' + (isConnector ? ' connector-active' : ''),
       'data-id': n.id
     }, $('nodes'));
 
     if (isRoom) {
       mk('rect', {
-        x: n.x - 13, y: n.y - 9, width: 26, height: 18,
-        rx: 5, fill: COL[n.t] || '#64748b'
+        x: n.x - 12, y: n.y - 8, width: 24, height: 16,
+        rx: 3, fill: COL[n.t] || '#64748b'
       }, g);
     } else {
       mk('circle', {
-        cx: n.x, cy: n.y, r: 10,
-        fill: '#121217', stroke: COL[n.t] || '#fff', 'stroke-width': 1.8
+        cx: n.x, cy: n.y, r: 9,
+        fill: '#18181b', stroke: COL[n.t] || '#fff', 'stroke-width': 1.5
       }, g);
       mk('text', {
-        x: n.x, y: n.y + 4.5, 'text-anchor': 'middle', 'font-size': 11,
+        x: n.x, y: n.y + 3.5, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 'bold',
         fill: COL[n.t] || '#fff', style: 'pointer-events:none'
-      }, g).textContent = ICO[n.t] || '•';
+      }, g).textContent = ICO[n.t] || 'o';
     }
 
     const gl = mk('g', { class: 'nl' }, g);
-    mk('text', { x: n.x, y: n.y + (isRoom ? 21 : 22) }, gl).textContent = (n.id || '').toUpperCase();
+    mk('text', { x: n.x, y: n.y + (isRoom ? 19 : 20) }, gl).textContent = (n.id || '').toUpperCase();
 
-    // If active transition stair/lift, render interactive guidance badge above it
     if (isConnector) {
       const targetFloor = (FL === R.A.f ? R.B.f : R.A.f);
       const tag = mk('g', { class: 'connector-tag' }, g);
       mk('rect', {
-        x: n.x - 30, y: n.y - 25, width: 60, height: 13,
-        rx: 4, fill: '#0284c7', stroke: '#38bdf8', 'stroke-width': 1
+        x: n.x - 26, y: n.y - 22, width: 52, height: 11,
+        rx: 3, fill: '#0284c7'
       }, tag);
       mk('text', {
-        x: n.x, y: n.y - 16, 'text-anchor': 'middle'
-      }, tag).textContent = '⚡ TAP TO ' + FC[targetFloor];
+        x: n.x, y: n.y - 14, 'text-anchor': 'middle'
+      }, tag).textContent = 'GO TO ' + FC[targetFloor];
     }
 
     g.onclick = e => {
       e.stopPropagation();
       if (moved) return;
 
-      // If clicking the active stair/lift connector, flip to destination floor immediately!
       if (isConnector) {
         const targetFloor = (FL === R.A.f ? R.B.f : R.A.f);
         const stepIdx = S.findIndex(s => s.f === targetFloor);
@@ -357,14 +348,14 @@ function show(fl) {
   });
 
   // Draw Start (Green) and Destination (Red) Target Rings
-  [[from, '#22c55e'], [to, '#f43f5e']].forEach(([r, c]) => {
+  [[from, '#16a34a'], [to, '#dc2626']].forEach(([r, c]) => {
     if (r && !r.nearest && r.f === fl) {
       const n = nd(r);
       if (n) {
         mk('circle', {
-          cx: n.x, cy: n.y, r: 18,
-          fill: 'none', stroke: c, 'stroke-width': 3,
-          style: 'pointer-events:none;filter:drop-shadow(0 0 6px ' + c + ')'
+          cx: n.x, cy: n.y, r: 16,
+          fill: 'none', stroke: c, 'stroke-width': 2.5,
+          style: 'pointer-events:none'
         }, $('nodes'));
       }
     }
@@ -394,11 +385,9 @@ function show(fl) {
 
 function drawRoute() {
   const Rt = $('route');
-  const RGlow = $('route-glow');
   const c = $('cur');
   $('arrows').innerHTML = '';
   Rt.removeAttribute('d');
-  RGlow.removeAttribute('d');
   c.style.display = 'none';
 
   if (!R) return;
@@ -407,7 +396,6 @@ function drawRoute() {
   if (lg) {
     const pathD = 'M' + lg.pts.map(p => p.join(' ')).join('L');
     Rt.setAttribute('d', pathD);
-    RGlow.setAttribute('d', pathD);
     arrows(lg.pts);
   }
 
@@ -422,31 +410,31 @@ function drawRoute() {
 function banner() {
   let t = '';
   if (wcm) {
-    t = `Tap a blinking ${wcm.g === 'g' ? 'Gents' : 'Ladies'} washroom on the ${FN[FL]} to set your start`;
+    t = `Select a ${wcm.g === 'g' ? 'Gents' : 'Ladies'} washroom on the ${FN[FL]} to set start`;
   } else if (R && R.r.via) {
     const cName = conn === 'lift' ? 'LIFT' : 'STAIRS';
     if (FL === R.A.f) {
-      t = `INTER-FLOOR · TAKE ${cName} ${R.r.via} → ${FN[R.B.f].toUpperCase()} (TAP TO SWITCH)`;
+      t = `Floor Change: Take ${cName} ${R.r.via} to ${FN[R.B.f]} (Click to switch)`;
     } else if (FL === R.B.f) {
-      t = `INTER-FLOOR · CONTINUE FROM ${R.r.via} → DESTINATION`;
+      t = `Floor Change: Continue from ${R.r.via} to destination`;
     }
   }
   $('bn').textContent = t;
   $('bn').style.display = t ? 'block' : 'none';
 }
 
-// Banner click handler: instantly flip floors
+// Banner click handler: switch floors
 $('bn').onclick = () => {
   if (R && R.r && R.r.via) {
     const targetFloor = (FL === R.A.f ? R.B.f : R.A.f);
     const stepIdx = S.findIndex(s => s.f === targetFloor);
     if (stepIdx >= 0) go(stepIdx);
     else show(targetFloor);
-    toast(`Switched to ${FN[targetFloor]} via ${R.r.via}`);
+    toast(`Switched to ${FN[targetFloor]}`);
   }
 };
 
-// ---- Directional Chevrons along Route ----
+// Directional Chevrons
 function arrows(P) {
   let carry = 30;
   for (let i = 0; i < P.length - 1; i++) {
@@ -458,9 +446,8 @@ function arrows(P) {
       const x = a[0] + (b[0] - a[0]) * d / len;
       const y = a[1] + (b[1] - a[1]) * d / len;
       mk('path', {
-        d: 'M-5 -4L5 0L-5 4Z',
-        fill: '#00f2fe',
-        filter: 'drop-shadow(0 0 3px rgba(0, 242, 254, 0.8))',
+        d: 'M-4 -3L4 0L-4 3Z',
+        fill: '#38bdf8',
         transform: `translate(${x} ${y}) rotate(${ang})`
       }, $('arrows'));
       carry = d + 46 - len;
@@ -541,7 +528,6 @@ svg.addEventListener('pointermove', e => {
   });
 });
 
-// Zoom and reset buttons
 $('btn-zin').onclick = () => {
   const r = svg.getBoundingClientRect();
   zoom(0.8, r.left + r.width / 2, r.top + r.height / 2);
@@ -559,7 +545,6 @@ function refresh() {
   $('cf').classList.toggle('on', active === 's');
   $('ct').classList.toggle('on', active === 'd');
 
-  // Show stairs/lift connector preference chips if crossing floors
   $('cn').style.display = from && to && !to.nearest && from.f !== to.f ? 'flex' : 'none';
   $('clr').style.display = from || to ? 'block' : 'none';
   document.querySelectorAll('.qn button').forEach(b => {
@@ -572,7 +557,7 @@ function setActive(a) {
   $('ts').classList.toggle('on', a === 's');
   $('td').classList.toggle('on', a === 'd');
   $('q').placeholder = a === 's' 
-    ? 'Search starting point (e.g. A-001, B-205, Lift)...' 
+    ? 'Search starting room, stairs, lift...' 
     : 'Search destination room, facility, exit...';
   refresh();
 }
@@ -602,7 +587,6 @@ function setRef(r) {
   show(r.f != null ? r.f : FL);
   refresh();
 
-  // If both endpoints are set, calculate automatically
   if (from && to) calc();
 }
 
@@ -611,14 +595,14 @@ function onNode(n) {
     if (n.t === wcm.g) {
       setRef({ f: FL, id: n.id });
     } else {
-      toast('Tap a blinking icon on the map');
+      toast('Select a washroom on this floor');
     }
     return;
   }
   openNodeCard(n);
 }
 
-// Universal search across all floors
+// Universal search
 function items(q) {
   const o = [];
   if (!q || 'washroom'.includes(q) || 'toilet'.includes(q)) {
@@ -656,7 +640,7 @@ function renderDD() {
     const d = document.createElement('div');
     if (it.wc) {
       d.innerHTML = `
-        <span>Washroom <small>${active === 's' ? 'choose floor & type' : 'nearest to you'}</small></span>
+        <span>Washroom <small>${active === 's' ? 'choose floor & type' : 'nearest'}</small></span>
         <span class="bd">WASHROOM</span>
       `;
     } else {
@@ -722,7 +706,7 @@ function updateActive(itemsEl) {
   });
 }
 
-// Washroom Flow Helper
+// Washroom Flow
 function wcFlow() {
   const w = $('wc');
   $('dd').style.display = 'none';
@@ -738,7 +722,7 @@ function wcFlow() {
     });
   };
 
-  const gender = cb => chips('Gents or Ladies?', [['♂ Gents', 'g'], ['♀ Ladies', 'f']], cb);
+  const gender = cb => chips('Gents or Ladies?', [['Gents', 'g'], ['Ladies', 'f']], cb);
 
   if (active === 'd') {
     gender(g => {
@@ -749,7 +733,7 @@ function wcFlow() {
       if (from) calc();
     });
   } else {
-    chips('Which floor are you on?', FC.map((c, i) => [c, i]), f => {
+    chips('Select Floor', FC.map((c, i) => [c, i]), f => {
       show(f);
       gender(g => {
         wcm = { g };
@@ -760,7 +744,7 @@ function wcFlow() {
   }
 }
 
-// Generate Turn-by-Turn Leg Descriptions
+// Turn-by-Turn Leg Descriptions
 function walk(P) {
   const M = [P[0]];
   for (let i = 1; i < P.length - 1; i++) {
@@ -775,24 +759,22 @@ function walk(P) {
   for (let i = 0; i < M.length - 1; i++) {
     const a = M[i], b = M[i + 1];
     const m = Math.round(dist(a, b) * 0.15);
-    let t = `Walk straight for ~${m} m`;
-    let icon = '⬆️';
+    let t = `Walk straight for ${m} m`;
 
     if (i < M.length - 2) {
       const c2 = M[i + 2];
       const cr = (b[0] - a[0]) * (c2[1] - b[1]) - (b[1] - a[1]) * (c2[0] - b[0]);
       if (Math.abs(cr) > 1) {
         t += cr > 0 ? ', then turn right' : ', then turn left';
-        icon = cr > 0 ? '↱' : '↰';
       }
     }
-    if (m > 0) o.push({ t, p: b, icon });
+    if (m > 0) o.push({ t, p: b });
   }
   return o;
 }
 
 function mkSteps(r, A, B) {
-  const o = [{ f: A.f, t: 'Start at ' + lab(nd(A)), p: r.legs[0].pts[0], icon: '🚩' }];
+  const o = [{ f: A.f, t: 'Start at ' + lab(nd(A)), p: r.legs[0].pts[0] }];
   const cName = conn === 'lift' ? 'lift' : 'stairs';
 
   r.legs.forEach((lg, i) => {
@@ -801,25 +783,23 @@ function mkSteps(r, A, B) {
       const direction = B.f > A.f ? 'up' : 'down';
       o.push({
         f: lg.f,
-        t: `Take the ${cName} (${r.via}) ${direction} to the ${FN[B.f]}`,
-        p: lg.pts[lg.pts.length - 1],
-        icon: conn === 'lift' ? '🛗' : '🪜'
+        t: `Take the ${cName} (${r.via}) ${direction} to ${FN[B.f]}`,
+        p: lg.pts[lg.pts.length - 1]
       });
       o.push({
         f: B.f,
-        t: `Exit ${r.via} on the ${FN[B.f]}`,
-        p: r.legs[1].pts[0],
-        icon: '🚪'
+        t: `Exit ${r.via} on ${FN[B.f]}`,
+        p: r.legs[1].pts[0]
       });
     }
   });
 
   const lp = r.legs[r.legs.length - 1].pts;
-  o.push({ f: B.f, t: 'Arrive at ' + lab(nd(B)), p: lp[lp.length - 1], icon: '🎯' });
+  o.push({ f: B.f, t: 'Arrive at ' + lab(nd(B)), p: lp[lp.length - 1] });
   return o;
 }
 
-// Calculate Route Path
+// Calculate Route
 function calc() {
   if (!from || !to) {
     toast('Set both a start and a destination');
@@ -851,7 +831,7 @@ function calc() {
 
   const r = legs(from, B, conn);
   if (!r) {
-    toast(`No ${conn} connection available between these floors`);
+    toast(`No ${conn} path found between these floors`);
     return;
   }
 
@@ -862,9 +842,8 @@ function calc() {
   const timeMin = Math.max(1, Math.round(m / 70));
 
   $('sum').innerHTML = `
-    <b>✓ Route Found</b>
-    <span>${lab(nd(from))} → ${lab(nd(B))}</span>
-    <span>${m} m · ~${timeMin} min walk${r.via ? ' · via ' + (conn === 'lift' ? 'Lift ' : 'Stairs ') + r.via : ''}</span>
+    <b>Route: ${lab(nd(from))} to ${lab(nd(B))}</b>
+    <span>Total distance: ${m} m (${timeMin} min walk)${r.via ? ' via ' + (conn === 'lift' ? 'Lift ' : 'Stairs ') + r.via : ''}</span>
   `;
   $('sum').style.display = 'flex';
   $('steps').style.display = 'block';
@@ -883,9 +862,9 @@ function go(i) {
   si = Math.max(0, Math.min(S.length - 1, i));
   const s = S[si];
 
-  $('sn').textContent = `STEP ${si + 1} OF ${S.length} · ${FC[s.f]}`;
+  $('sn').textContent = `Step ${si + 1} of ${S.length} (${FC[s.f]})`;
   $('stx').textContent = s.t;
-  $('step-icon').textContent = s.icon || '📍';
+  $('step-icon').textContent = `${si + 1}`;
   $('pv').disabled = !si;
   $('nx').disabled = si === S.length - 1;
 
@@ -894,7 +873,7 @@ function go(i) {
 
   $('sl').innerHTML = S.map((x, j) => `
     <li class="${j === si ? 'on' : ''}" data-idx="${j}">
-      ${x.icon || '•'} <b>Step ${j + 1} (${FC[x.f]}):</b> ${x.t}
+      <b>${j + 1}.</b> ${x.t} (${FC[x.f]})
     </li>
   `).join('');
 
@@ -902,7 +881,6 @@ function go(i) {
     li.onclick = () => go(+li.dataset.idx);
   });
 
-  // Automatically switch floor map if step is on another floor
   if (s.f !== FL) {
     show(s.f);
   } else {
@@ -936,7 +914,7 @@ $('clr').onclick = () => {
 
 $('sw').onclick = () => {
   if (to && to.nearest) {
-    toast("Can't swap with a nearest-washroom target");
+    toast("Cannot swap with dynamic washroom destination");
     return;
   }
   const temp = from;
@@ -948,7 +926,6 @@ $('sw').onclick = () => {
   if (from && to) calc();
 };
 
-// Stairs / Lift preference chips
 document.querySelectorAll('#cn button').forEach(b => {
   b.onclick = () => {
     conn = b.dataset.c;
@@ -957,7 +934,6 @@ document.querySelectorAll('#cn button').forEach(b => {
   };
 });
 
-// Quick Navigation shortcuts
 document.querySelectorAll('.qn button').forEach(b => {
   b.onclick = () => {
     const t = b.dataset.q;
@@ -996,7 +972,7 @@ document.querySelectorAll('.qn button').forEach(b => {
   };
 });
 
-// Node Quick Action Card
+// Node Popup Card
 let activeNode = null;
 function openNodeCard(n) {
   activeNode = n;
@@ -1004,7 +980,6 @@ function openNodeCard(n) {
   $('nc-title').textContent = lab(n);
   $('nc-type').textContent = KIND[n.t] || 'ROOM';
   $('nc-floor').textContent = FC[FL];
-  $('nc-icon').textContent = ICO[n.t] || '📍';
   card.style.display = 'block';
 }
 
@@ -1025,7 +1000,6 @@ $('nc-set-dest').onclick = () => {
   }
 };
 
-// Dismiss modals on outside canvas tap
 svg.addEventListener('click', () => {
   if (!moved) {
     closeNodeCard();
@@ -1034,7 +1008,6 @@ svg.addEventListener('click', () => {
   }
 });
 
-// Floor Selector Toggle
 $('fb').onclick = e => {
   e.stopPropagation();
   const m = $('fm');
@@ -1044,7 +1017,7 @@ $('fb').onclick = e => {
 $('col').onclick = () => {
   const h = $('sb').style.display === 'none';
   $('sb').style.display = h ? 'block' : 'none';
-  $('col').textContent = h ? '‹' : '›';
+  $('col').textContent = h ? '<' : '>';
 };
 
 $('gear').onclick = () => svg.classList.toggle('nolab');

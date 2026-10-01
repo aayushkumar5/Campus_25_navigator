@@ -1,135 +1,58 @@
-# 🗺️ KIIT Campus 25 Navigator
+# Campus 25 Navigator
 
-[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![CSS3](https://img.shields.io/badge/CSS3-Vanilla%20Glassmorphism-1572B6?logo=css3&logoColor=white)](https://www.w3.org/Style/CSS/)
-[![PWA Ready](https://img.shields.io/badge/PWA-Installable%20%26%20Offline-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+Indoor navigation and shortest-path pathfinding web application for KIIT University Campus 25.
 
-An interactive, multi-floor indoor navigation and shortest-path pathfinding web application designed for **KIIT University Campus 25**.
+## Features
 
----
+- **Multi-Floor Routing**: Computes shortest path between rooms across Ground, 1st, 2nd, and 3rd floors using shared stairs or lifts.
+- **Stairs vs. Lift Selection**: Toggle between stairs and elevators for inter-floor routes.
+- **Interactive Floor Transition**: Click the active stairs or elevator marker on the canvas or the top guidance banner to switch the floor view.
+- **Cross-Floor Search**: Index and autocomplete search for classrooms, labs, offices, and facilities across all floors with keyboard navigation support.
+- **Quick Navigation**: Fast destination routing to the nearest stairs, lifts, washrooms, water coolers, and building exits.
+- **Step-by-Step Directions**: Turn-by-turn instruction list with distance estimations.
+- **PWA Support**: Offline asset caching using Service Worker.
 
-## 🌟 Features
+## Architecture
 
-### 🏢 Multi-Floor & Inter-Floor Pathfinding
-- **Seamless Cross-Floor Navigation**: Calculate continuous paths across levels (Ground Floor, 1st Floor, 2nd Floor, and 3rd Floor).
-- **Stairs vs. Lift Preference**: Choose between taking the stairs or the elevator with dynamic path recalculation.
-- **Interactive Floor Teleport**: Tapping an active staircase or elevator icon directly on the SVG map flips the view to the destination level with a smooth transition.
-- **Auto-Switching Guidance**: Step-by-step navigation automatically transitions the floor view as you advance past floor connectors.
+Corridors are modeled as polyline segments, split at intersection points. Room coordinates snap to the closest corridor segment using orthogonal projection. Dijkstra's algorithm computes single-floor paths, and inter-floor connections are resolved by finding the minimal combined walking and vertical transition cost.
 
-### 🔍 Universal Search & Quick Navigation
-- **Cross-Floor Autocomplete**: Search classrooms (Blocks A, B, C), laboratories, offices, and facilities across all floors simultaneously with level badges (`GF`, `1F`, `2F`, `3F`).
-- **Keyboard Navigation**: Full support for <kbd>↑</kbd>, <kbd>↓</kbd>, and <kbd>Enter</kbd> keyboard search.
-- **Instant Shortcuts**: One-tap navigation to the nearest **Stairs**, **Lifts**, **Gents Washrooms**, **Ladies Washrooms**, **Water Coolers**, or **Building Exits**.
-- **Interactive Washroom Wizard**: Quick modal to select floor & gender with blinking map highlights.
+## Project Structure
 
-### 🎨 Modern Glassmorphic UI / UX
-- **Vibrant Dark Mode**: Glassmorphic panels with backdrop blur (`backdrop-filter: blur(24px)`), neon cyan animated route paths, and directional chevrons.
-- **Floating Map Controls**: Touch and pointer-friendly controls for Zoom In (`+`), Zoom Out (`−`), Fit Map (`⛶`), and Label Toggle (`🏷️`).
-- **Turn-by-Turn Guidance**: Distance estimations in meters and walking time in minutes, maneuver badges (🚩 Start, ⬆️ Straight, ↱ Turn Right, ↰ Turn Left, 🎯 Arrive), and interactive progress bars.
-- **Room Info Popups**: Tap any room or point of interest on the canvas to open a quick modal with "Set as Start" or "Set as Destination".
-- **Progressive Web App (PWA)**: Offline caching with Service Workers and mobile home-screen installable.
+- `index.html`: Main HTML shell and SVG map canvas
+- `css/style.css`: Layout, theme styles, and controls
+- `js/data.js`: Campus coordinate nodes and corridor paths
+- `js/main.js`: Graph construction, Dijkstra routing, and UI interactions
+- `manifest.webmanifest`: Progressive Web App configuration
+- `sw.js`: Service Worker for offline asset caching
+- `public/icon.svg`: Application icon
 
----
-
-## 🏗️ Architecture & How It Works
-
-```
-                     ┌──────────────────────────────┐
-                     │   Raw Floor Plan Data (D)    │
-                     │  Coordinates + Node Types    │
-                     └──────────────┬───────────────┘
-                                    │
-                     ┌──────────────▼──────────────┐
-                     │ Corridor Polyline Data (L)   │
-                     │   Intersection Resolution    │
-                     └──────────────┬───────────────┘
-                                    │
-        ┌───────────────────────────┴───────────────────────────┐
-        ▼                                                       ▼
-┌──────────────────────────────┐         ┌──────────────────────────────┐
-│  Single-Floor Graph (0..3)   │         │    Multi-Floor Routing       │
-│  Dijkstra's Shortest Path    │         │  Shared Stair / Lift Penalty │
-└──────────────┬───────────────┘         └──────────────┬───────────────┘
-               │                                        │
-               └────────────────────┬───────────────────┘
-                                    │
-                     ┌──────────────▼──────────────┐
-                     │  SVG Viewport & Interactive │
-                     │  UI / Glassmorphic Panels   │
-                     └─────────────────────────────┘
-```
-
-1. **Graph Construction (`js/main.js`)**: Corridors are defined as polyline segments, snapped at intersection points (`ix`). Room coordinates (`D`) snap to the closest corridor segment using orthogonal projection.
-2. **Shortest Path Algorithm**: Dijkstra's algorithm computes single-floor routes and combines multi-floor legs (`legs()`) by minimizing walking distance plus vertical floor-change transition weights.
-3. **Responsive SVG Canvas**: Vector rendering with dynamic viewBox manipulation, pinch-to-zoom, pan drag, and animated path overlays.
-
----
-
-## 📁 Project Structure
-
-```
-Campus_25_navigator/
-├── index.html            # Main HTML app shell and SVG map canvas
-├── manifest.webmanifest  # PWA configuration and app icons
-├── package.json          # Vite bundler dependencies & build scripts
-├── sw.js                 # Service Worker for offline capability & caching
-├── css/
-│   └── style.css         # Glassmorphic design system, animations, and tokens
-├── js/
-│   ├── data.js           # Hand-mapped campus coordinates & corridor paths
-│   └── main.js           # Graph builder, Dijkstra engine, and UI controller
-└── public/
-    └── icon.svg          # Application vector logo
-```
-
----
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (version 18+ recommended)
-- [npm](https://www.npmjs.com/)
+- Node.js (version 18+)
+- npm
 
-### Installation
+### Installation and Run
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/aayushkumar5/Campus_25_navigator.git
-   cd Campus_25_navigator
-   ```
+```bash
+# Install dependencies
+npm install
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+# Start development server
+npm run dev
 
-3. **Start the development server:**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:5173/](http://localhost:5173/) in your browser.
+# Build production bundle
+npm run build
+```
 
-4. **Build for production:**
-   ```bash
-   npm run build
-   ```
-   The compiled bundle will be generated in the `dist/` directory.
+## Shortcuts and Navigation
 
----
+- **Pan**: Click and drag on map
+- **Zoom**: Mouse wheel or `+` / `-` buttons
+- **Fit View**: `Fit` button
+- **Toggle Labels**: `Labels` button
+- **Search Selection**: Up / Down arrow keys and Enter
+- **Floor Switch**: Click active connector node or top banner during multi-floor routing
 
-## 📱 Keyboard & Gesture Shortcuts
-
-| Action | Shortcut / Gesture |
-| :--- | :--- |
-| **Pan Map** | Click & Drag / Single Touch Drag |
-| **Zoom Map** | Mouse Wheel / Pinch Gesture / `+` and `−` Buttons |
-| **Recenter Map** | `⛶` Button |
-| **Toggle Room Labels** | `🏷️` Button |
-| **Search Autocomplete** | Type room name, navigate with <kbd>↑</kbd> / <kbd>↓</kbd>, select with <kbd>Enter</kbd> |
-| **Switch Floors on Route** | Tap glowing Stair/Lift node on canvas or tap top Banner |
-
----
-
-## 📄 License
-MIT License. Built for KIIT University Campus 25.
+## License
+MIT

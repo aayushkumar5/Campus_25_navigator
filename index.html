@@ -4,57 +4,48 @@
   <meta charset="utf-8">
   <title>KIIT Campus 25 Navigator</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="description" content="Interactive multi-floor indoor navigation and shortest-path finder for KIIT Campus 25.">
-  <meta name="theme-color" content="#d9480f">
+  <meta name="description" content="Indoor floor navigation and shortest-path finder for KIIT Campus 25.">
+  <meta name="theme-color" content="#d97706">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg">
 </head>
 <body>
   <!-- Map Canvas -->
-  <svg id="map" aria-label="Campus 25 Interactive Map">
-    <defs>
-      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="3.5" result="blur" />
-        <feComposite in="SourceGraphic" in2="blur" operator="over" />
-      </filter>
-    </defs>
+  <svg id="map" aria-label="Campus 25 Map">
     <g id="vp">
       <g id="roads"></g>
-      <path id="route-glow" />
       <path id="route" />
       <g id="arrows"></g>
       <g id="nodes"></g>
-      <circle id="cur" r="8" />
-      <!-- SVG Canvas Floor Title -->
-      <text id="ttl" x="900" y="70" text-anchor="middle" fill="#f8fafc" font-size="28" font-weight="800" letter-spacing="6" style="pointer-events:none">CAMPUS 25</text>
-      <text id="sub" x="900" y="92" text-anchor="middle" fill="#fb923c" font-size="13" font-weight="700" letter-spacing="3" style="pointer-events:none">GROUND FLOOR</text>
+      <circle id="cur" r="7" />
+      <text id="ttl" x="900" y="70" text-anchor="middle" fill="#e2e8f0" font-size="26" font-weight="700" letter-spacing="4" style="pointer-events:none">CAMPUS 25</text>
+      <text id="sub" x="900" y="92" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="600" letter-spacing="2" style="pointer-events:none">GROUND FLOOR</text>
     </g>
   </svg>
 
-  <!-- Inter-Floor Transition Banner -->
+  <!-- Inter-Floor Guidance Banner -->
   <div id="bn" role="status" aria-live="polite"></div>
 
   <!-- Top Controls -->
   <header id="top">
     <div class="control-cluster">
-      <button class="ib" id="gear" title="Toggle Room Labels" aria-label="Toggle Labels">🏷️</button>
-      <button class="ib" id="btn-fit" title="Reset View / Fit Map" aria-label="Fit Map">⛶</button>
+      <button class="ib" id="gear" title="Toggle Labels" aria-label="Toggle Labels">Labels</button>
+      <button class="ib" id="btn-fit" title="Fit Map View" aria-label="Fit Map">Fit</button>
       <div class="zoom-group">
         <button class="ib" id="btn-zin" title="Zoom In" aria-label="Zoom In">+</button>
-        <button class="ib" id="btn-zout" title="Zoom Out" aria-label="Zoom Out">−</button>
+        <button class="ib" id="btn-zout" title="Zoom Out" aria-label="Zoom Out">-</button>
       </div>
     </div>
 
-    <!-- Floor Selector Dropdown -->
+    <!-- Floor Selector -->
     <div class="floor-select-wrap">
       <button id="fb" class="floor-btn" aria-haspopup="true" aria-expanded="false">
-        <span class="floor-icon">▦</span>
+        <span>Level:</span>
         <b id="fl">GF</b>
-        <span class="floor-arr">▾</span>
       </button>
       <div id="fm" class="dd floor-dropdown" role="menu"></div>
     </div>
@@ -67,10 +58,10 @@
         <div class="badge-logo">C25</div>
         <div>
           <h1>Campus 25 Navigator</h1>
-          <span class="sub-header">KIIT University • Multi-Floor Navigation</span>
+          <span class="sub-header">KIIT University - Floor Navigation</span>
         </div>
       </div>
-      <button class="ib toggle-btn" id="col" title="Collapse panel" aria-label="Toggle Sidebar">‹</button>
+      <button class="ib toggle-btn" id="col" title="Collapse Panel" aria-label="Toggle Sidebar">&lt;</button>
     </div>
 
     <div class="body" id="sb">
@@ -80,80 +71,80 @@
         <button id="td" role="tab" aria-selected="false">SET DESTINATION</button>
       </div>
 
-      <!-- Universal Search Field -->
+      <!-- Search Field -->
       <div class="fld">
-        <input id="q" placeholder="Search starting point (e.g. A-001, B-205, Lift)..." autocomplete="off" aria-label="Search location">
-        <button class="x" id="qx" hidden title="Clear search">✕</button>
+        <input id="q" placeholder="Search room, stairs, lift, or facility..." autocomplete="off" aria-label="Search location">
+        <button class="x" id="qx" hidden title="Clear search">x</button>
         <div class="dd" id="dd" role="listbox"></div>
       </div>
 
       <div id="wc"></div>
 
-      <!-- Route Endpoints Cards -->
-      <div class="card on" id="cf" title="Click to select start point">
+      <!-- Endpoint Cards -->
+      <div class="card on" id="cf">
         <span class="pin">A</span>
         <div>
-          <small>START POINT (FROM)</small>
+          <small>START POINT</small>
           <b id="vf">Not set</b>
         </div>
       </div>
 
-      <div class="card" id="ct" title="Click to select destination point">
+      <div class="card" id="ct">
         <span class="pin b">B</span>
         <div>
-          <small>DESTINATION (TO)</small>
+          <small>DESTINATION</small>
           <b id="vt">Not set</b>
         </div>
       </div>
 
-      <!-- Connector Preference for Multi-Floor Routes -->
+      <!-- Floor Connector Choice -->
       <div id="cn" class="chips" style="display:none">
-        <small>BETWEEN FLOORS USE</small>
-        <button data-c="stairs" class="on"><span class="chip-icon">🪜</span> Stairs</button>
-        <button data-c="lift"><span class="chip-icon">🛗</span> Lift</button>
+        <small>CONNECTOR TYPE</small>
+        <button data-c="stairs" class="on">Use Stairs</button>
+        <button data-c="lift">Use Lift</button>
       </div>
 
       <!-- Action Row -->
       <div class="action-row">
-        <button class="ib swap-btn" id="sw" title="Swap Start & Destination" aria-label="Swap">⇅</button>
+        <button class="ib swap-btn" id="sw" title="Swap Endpoints" aria-label="Swap">Swap</button>
         <button id="calc" class="btn-calculate">Calculate Route</button>
       </div>
 
-      <button id="clr" class="btn-clear">✕ Clear Route</button>
+      <button id="clr" class="btn-clear">Clear Route</button>
 
-      <!-- Route Summary Box -->
+      <!-- Route Summary -->
       <div id="sum" class="route-summary" style="display:none"></div>
 
       <!-- Quick Navigation -->
       <div class="quick-nav-wrap">
-        <div class="lb">QUICK NAVIGATION (FROM START)</div>
+        <div class="lb">QUICK FIND (FROM START)</div>
         <div class="qn">
-          <button data-q="s"><span class="qn-icon">🪜</span> Nearest Stairs</button>
-          <button data-q="l"><span class="qn-icon">🛗</span> Nearest Lift</button>
-          <button data-q="g"><span class="qn-icon">🚹</span> Gents Washroom</button>
-          <button data-q="f"><span class="qn-icon">🚺</span> Ladies Washroom</button>
-          <button data-q="w"><span class="qn-icon">💧</span> Water Cooler</button>
-          <button data-q="e"><span class="qn-icon">🚪</span> Nearest Exit</button>
+          <button data-q="s">Nearest Stairs</button>
+          <button data-q="l">Nearest Lift</button>
+          <button data-q="g">Gents Washroom</button>
+          <button data-q="f">Ladies Washroom</button>
+          <button data-q="w">Water Cooler</button>
+          <button data-q="e">Building Exit</button>
         </div>
       </div>
     </div>
   </main>
 
-  <!-- Step-by-Step Directions Card -->
+  <!-- Step-by-Step Directions -->
   <section class="pn" id="steps" aria-live="polite">
     <div class="st">
-      <div class="step-badge" id="step-icon">🚩</div>
+      <div class="step-badge" id="step-icon">Step</div>
       <div class="t">
         <div class="step-meta">
-          <span id="sn">STEP 1 OF 3 · GF</span>
-          <span id="route-dist" class="route-dist-pill">~0 m</span>
+          <span id="sn">Step 1 of 3</span>
+          <span id="route-dist" class="route-dist-pill">0 m</span>
         </div>
         <span id="stx" class="step-instruction">Follow directions</span>
       </div>
       <div class="step-actions">
-        <button class="ib" id="pv" title="Previous Step" aria-label="Previous">‹</button>
-        <button class="ib" id="nx" title="Next Step" aria-label="Next">›</button>
-        <button class="ib" id="ex2" title="Toggle full step list" aria-label="Expand List">▾</button>
+        <button class="ib" id="pv" title="Previous Step" aria-label="Previous">&lt;</button>
+        <button class="ib" id="nx" title="Next Step" aria-label="Next">&gt;</button>
+        <button class="ib" id="ex2" title="Toggle Step List" aria-label="Expand List">List</button>
       </div>
     </div>
     <div class="progress-bar-wrap">
@@ -162,10 +153,9 @@
     <ol id="sl"></ol>
   </section>
 
-  <!-- Node Quick Action Popup on Tap -->
+  <!-- Node Popup Card -->
   <div id="node-card" class="node-popup" style="display:none">
     <div class="node-header">
-      <div class="node-icon-box" id="nc-icon">📍</div>
       <div>
         <h4 id="nc-title">Room Name</h4>
         <div class="nc-badges">
@@ -173,7 +163,7 @@
           <span id="nc-floor" class="bd ex">GF</span>
         </div>
       </div>
-      <button class="ib nc-close" id="nc-close" title="Close">✕</button>
+      <button class="ib nc-close" id="nc-close" title="Close">x</button>
     </div>
     <div class="node-actions">
       <button id="nc-set-start" class="btn-primary">Set as Start (A)</button>
@@ -181,21 +171,21 @@
     </div>
   </div>
 
-  <!-- Map Legend Footer -->
+  <!-- Legend -->
   <footer id="lg">
-    <span><i style="background:#6366f1"></i>Block A</span>
-    <span><i style="background:#f97316"></i>Block B</span>
-    <span><i style="background:#8b5cf6"></i>Block C</span>
-    <span><i style="background:#22c55e"></i>Stairs</span>
-    <span><i style="background:#a855f7"></i>Lift</span>
-    <span><i style="background:#0ea5e9"></i>Gents</span>
-    <span><i style="background:#ec4899"></i>Ladies</span>
-    <span><i style="background:#38bdf8"></i>Water</span>
-    <span><i style="background:#eab308"></i>Entry</span>
-    <span><i style="background:#00f2fe"></i>Active Route</span>
+    <span><i style="background:#2563eb"></i>Block A</span>
+    <span><i style="background:#ea580c"></i>Block B</span>
+    <span><i style="background:#475569"></i>Block C</span>
+    <span><i style="background:#16a34a"></i>Stairs</span>
+    <span><i style="background:#0891b2"></i>Lift</span>
+    <span><i style="background:#0284c7"></i>Gents</span>
+    <span><i style="background:#db2777"></i>Ladies</span>
+    <span><i style="background:#06b6d4"></i>Water</span>
+    <span><i style="background:#d97706"></i>Entry</span>
+    <span><i style="background:#38bdf8"></i>Path</span>
   </footer>
 
-  <!-- Toast Notification -->
+  <!-- Toast -->
   <div id="toast" role="status"></div>
 
   <script type="module" src="js/main.js"></script>
