@@ -1,4 +1,5 @@
-import { $, FLOOR_CODES, FLOOR_NAMES } from './constants.js';
+import { $, FLOOR_CODES, FLOOR_NAMES, M_PER_PX } from './constants.js';
+import { centerOnStep } from './viewport.js';
 import { calcDistance, getNodeByRef, getNodeLabel } from './graph.js';
 import { state } from './state.js';
 
@@ -17,7 +18,7 @@ export function simplifyPathPolyline(points) {
   const stepList = [];
   for (let i = 0; i < simplified.length - 1; i++) {
     const a = simplified[i], b = simplified[i + 1];
-    const meters = Math.round(calcDistance(a, b) * 0.15);
+    const meters = Math.round(calcDistance(a, b) * M_PER_PX);
     let instruction = `Walk straight for ${meters} m`;
 
     if (i < simplified.length - 2) {
@@ -115,5 +116,9 @@ export function navigateToStep(stepIdx, updateFloorCallback, drawRouteCallback) 
     updateFloorCallback(step.f);
   } else {
     drawRouteCallback();
+  }
+
+  if (step.p) {
+    centerOnStep(step.p[0], step.p[1]);
   }
 }

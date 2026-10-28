@@ -1,4 +1,4 @@
-import { $, SVG_NS, COLORS, ICONS, ROOM_TYPES, FLOOR_CODES, FLOOR_NAMES } from './constants.js';
+import { $, SVG_NS, COLORS, ROOM_TYPES, FLOOR_CODES, FLOOR_NAMES } from './constants.js';
 import { calcDistance, getNodeByRef, getNodeLabel, FLOORS } from './graph.js';
 import { state, showToast, saveRecent } from './state.js';
 import { dragDistance } from './viewport.js';
@@ -12,6 +12,18 @@ export const createSvgElement = (tagName, attributes, parentElement) => {
   (parentElement || vp).appendChild(el);
   return el;
 };
+
+// Facility glyph icons drawn inside marker chips (designed on a -6..6 grid)
+const FAC_GLYPHS = {
+  s: { d: 'M-4.5 4.5h1.9V2.7h1.9V.9h1.9v-1.8h1.9v-1.8h1.8v-1.8', stroke: true },
+  l: { d: 'M-3.4-1.1L-.6-3.9 2.2-1.1M-3.4 1.1L-.6 3.9 2.2 1.1', stroke: true },
+  g: { d: 'M0-4.3m-1.4 0a1.4 1.4 0 1 0 2.8 0 1.4 1.4 0 1 0-2.8 0M-2.5 4.6v-5Q-2.5-2-1-2h2Q2.5-2 2.5-.4v5H1.1V1h-2.2v3.6z', fill: true },
+  f: { d: 'M0-4.3m-1.4 0a1.4 1.4 0 1 0 2.8 0 1.4 1.4 0 1 0-2.8 0M-2.4 3.2L-.9-2Q-.7-2.4-.3-2.4h.6Q.7-2.4.9-2l1.5 5.2H.9l-.4 1.4h-1L-.9 3.2z', fill: true },
+  e: { d: 'M-4.6 0H1.6M-.7-2.2L1.9 0-.7 2.2M3.8-3.8v7.6', stroke: true },
+  w: { d: 'M0-4.7C2.4-1.5 3.4.5 3.4 2.3a3.4 3.4 0 1 1-6.8 0C-3.4.5-2.4-1.5 0-4.7z', fill: true }
+};
+
+const PIN_PATH = 'M0 1c-4.2-4.8-6.2-7.4-6.2-10.6a6.2 6.2 0 1 1 12.4 0C6.2-6.4 4.2-3.8 0 1z';
 
 // Directional Animated Chevrons along route
 export function renderDirectionalArrows(points) {
@@ -27,7 +39,6 @@ export function renderDirectionalArrows(points) {
       const y = a[1] + (b[1] - a[1]) * d / length;
       createSvgElement('path', {
         d: 'M-4 -3L4 0L-4 3Z',
-        fill: '#38bdf8',
         transform: `translate(${x} ${y}) rotate(${angleDeg})`
       }, $('arrows'));
       lastDist = d;
@@ -106,12 +117,20 @@ export function renderFloor(floorIdx, onNodeSelectCallback, onConnectorClickCall
   $('roads').innerHTML = '';
   $('nodes').innerHTML = '';
 
-  // 1. Draw Roads & Stubs
+  // 1. Draw Corridors — wide floor band, then a bright center line
   floorGraph.segs.forEach(seg => {
     createSvgElement('line', {
       x1: seg.a[0], y1: seg.a[1], x2: seg.b[0], y2: seg.b[1],
-      stroke: '#27272a',
-      'stroke-width': 2.5,
+      stroke: '#16263f',
+      'stroke-width': 11,
+      'stroke-linecap': 'round'
+    }, $('roads'));
+  });
+  floorGraph.segs.forEach(seg => {
+    createSvgElement('line', {
+      x1: seg.a[0], y1: seg.a[1], x2: seg.b[0], y2: seg.b[1],
+      stroke: '#33507c',
+      'stroke-width': 1.2,
       'stroke-linecap': 'round'
     }, $('roads'));
   });
@@ -119,45 +138,113 @@ export function renderFloor(floorIdx, onNodeSelectCallback, onConnectorClickCall
   floorGraph.stubs.forEach(([node, pt]) => {
     createSvgElement('line', {
       x1: node.x, y1: node.y, x2: pt[0], y2: pt[1],
-      stroke: '#27272a',
-      'stroke-width': 1.5,
-      'stroke-dasharray': '2 2'
+      stroke: '#33507c',
+      'stroke-width': 1.1,
+      'stroke-dasharray': '2.5 2.5'
     }, $('roads'));
   });
 
+  // Faint block letter watermarks, like an architectural plan
+  [['A', 390, 280], ['B', 920, 530], ['C', 470, 790]].forEach(([letter, x, y]) => {
+    createSvgElement('text', {
+      x, y,
+      'text-anchor': 'middle',
+      'font-size': 110,
+      'font-weight': 800,
+      fill: 'rgba(120, 160, 220, 0.05)',
+      style: 'pointer-events:none'
+    }, $('roads')).textContent = letter;
+  });
+
   const isInterFloor = state.currentRoute && state.currentRoute.r && state.currentRoute.r.via;
+  const effectiveDest = state.currentRoute ? state.currentRoute.B : state.destPoint;
 
   // 2. Draw Nodes
   Object.values(floorGraph.N).forEach(node => {
     const isRoom = /[abtrc]/.test(node.t);
+    const isHub = node.t === 'x';
     const isConnector = isInterFloor && node.id === state.currentRoute.r.via;
+    const isStart = state.startPoint && !state.startPoint.nearest && state.startPoint.f === floorIdx && state.startPoint.id === node.id;
+    const isDest = effectiveDest && !effectiveDest.nearest && effectiveDest.f === floorIdx && effectiveDest.id === node.id;
 
     const group = createSvgElement('g', {
-      class: 'nd' + (isConnector ? ' connector-active' : '') + (state.washroomPickerMode && node.t === state.washroomPickerMode.g ? ' blink' : ''),
+      class: 'nd' + (isConnector ? ' connector-active' : '') + (isStart ? ' mk-start' : '') + (isDest ? ' mk-dest' : '') + (state.washroomPickerMode && node.t === state.washroomPickerMode.g ? ' blink' : ''),
       'data-id': node.id,
       role: 'button',
       tabindex: '0',
       'aria-label': `${getNodeLabel(node)}, ${ROOM_TYPES[node.t] || 'Room'}, ${FLOOR_NAMES[floorIdx]}`
     }, $('nodes'));
 
-    if (isRoom) {
+    if (isRoom || isHub) {
+      // Room tile — label sits inside when the id is short enough
+      const shortId = (node.id || '').length <= 8;
       createSvgElement('rect', {
-        x: node.x - 12, y: node.y - 8, width: 24, height: 16,
-        rx: 3, fill: COLORS[node.t] || '#64748b'
+        x: node.x - 23,
+        y: node.y - 15,
+        width: 46,
+        height: 30,
+        rx: 4,
+        fill: isHub ? '#1a1c38' : '#12203a',
+        stroke: isHub ? '#6d5bd0' : '#3b5380',
+        'stroke-width': 1.1,
+        'stroke-dasharray': isHub ? '3 2' : 'none',
+        'vector-effect': 'non-scaling-stroke'
       }, group);
-    } else {
-      createSvgElement('circle', {
-        cx: node.x, cy: node.y, r: 9,
-        fill: '#18181b', stroke: COLORS[node.t] || '#fff', 'stroke-width': 1.5
-      }, group);
+      const labelGroup = createSvgElement('g', { class: 'nl' }, group);
       createSvgElement('text', {
-        x: node.x, y: node.y + 3.5, 'text-anchor': 'middle', 'font-size': 9, 'font-weight': 'bold',
-        fill: COLORS[node.t] || '#fff', style: 'pointer-events:none'
-      }, group).textContent = ICONS[node.t] || 'o';
+        x: node.x,
+        y: shortId ? node.y + 2.4 : node.y + 26,
+        class: shortId ? 'room-label' : ''
+      }, labelGroup).textContent = (node.id || '').toUpperCase();
+    } else {
+      // Facility marker — colored chip with a glyph icon
+      const c = COLORS[node.t] || '#94a3b8';
+      createSvgElement('rect', {
+        x: node.x - 10,
+        y: node.y - 10,
+        width: 20,
+        height: 20,
+        rx: 6.5,
+        class: 'marker-chip',
+        fill: c,
+        'fill-opacity': 0.14,
+        stroke: c,
+        'stroke-width': 1.3,
+        'vector-effect': 'non-scaling-stroke'
+      }, group);
+      const glyph = FAC_GLYPHS[node.t];
+      if (glyph) {
+        createSvgElement('path', {
+          d: glyph.d,
+          transform: `translate(${node.x} ${node.y})`,
+          fill: glyph.fill ? c : 'none',
+          stroke: glyph.stroke ? c : 'none',
+          'stroke-width': 1.4,
+          'stroke-linecap': 'round',
+          'stroke-linejoin': 'round',
+          style: 'pointer-events:none'
+        }, group);
+      }
+      const labelGroup = createSvgElement('g', { class: 'nl' }, group);
+      createSvgElement('text', { x: node.x, y: node.y + 21 }, labelGroup).textContent = (node.id || '').toUpperCase();
     }
 
-    const labelGroup = createSvgElement('g', { class: 'nl' }, group);
-    createSvgElement('text', { x: node.x, y: node.y + (isRoom ? 19 : 20) }, labelGroup).textContent = (node.id || '').toUpperCase();
+    if (isDest) {
+      // Destination teardrop pin above the marker
+      createSvgElement('path', {
+        d: PIN_PATH,
+        transform: `translate(${node.x} ${node.y - 16})`,
+        fill: '#22d3ee',
+        style: 'pointer-events:none'
+      }, group);
+      createSvgElement('circle', {
+        cx: node.x,
+        cy: node.y - 16 - 9.6,
+        r: 2.3,
+        fill: '#06202c',
+        style: 'pointer-events:none'
+      }, group);
+    }
 
     if (isConnector) {
       const targetFloor = (state.currentFloor === state.currentRoute.A.f ? state.currentRoute.B.f : state.currentRoute.A.f);
@@ -193,8 +280,8 @@ export function renderFloor(floorIdx, onNodeSelectCallback, onConnectorClickCall
     node.el = group;
   });
 
-  // 3. Draw Start (Green) & Destination (Red) Target Rings
-  [[state.startPoint, '#16a34a'], [state.destPoint, '#dc2626']].forEach(([ref, strokeColor]) => {
+  // 3. Draw Start (Green) & Destination (Cyan) Target Rings
+  [[state.startPoint, '#22c55e'], [effectiveDest, '#22d3ee']].forEach(([ref, strokeColor]) => {
     if (ref && !ref.nearest && ref.f === floorIdx) {
       const node = getNodeByRef(ref);
       if (node) {
@@ -208,8 +295,8 @@ export function renderFloor(floorIdx, onNodeSelectCallback, onConnectorClickCall
   });
 
   // 4. Update Header Floor Badges & Dropdown
-  $('sub').textContent = FLOOR_NAMES[floorIdx].toUpperCase();
-  $('fl').textContent = FLOOR_CODES[floorIdx];
+  $('bc-floor').textContent = FLOOR_NAMES[floorIdx];
+  $('fl').textContent = FLOOR_NAMES[floorIdx];
 
   $('fm').innerHTML = '';
   [3, 2, 1, 0].forEach(level => {
@@ -217,7 +304,7 @@ export function renderFloor(floorIdx, onNodeSelectCallback, onConnectorClickCall
     item.className = level === state.currentFloor ? 'on' : '';
     item.setAttribute('role', 'menuitem');
     item.setAttribute('tabindex', '0');
-    item.innerHTML = `<b>${level ? FLOOR_CODES[level] : 'GF'}</b><span>${FLOOR_NAMES[level]}</span>`;
+    item.innerHTML = `<b>${FLOOR_CODES[level]}</b><span>${FLOOR_NAMES[level]}</span>`;
     
     const selectFloor = e => {
       e.preventDefault();

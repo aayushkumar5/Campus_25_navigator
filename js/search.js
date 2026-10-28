@@ -137,6 +137,9 @@ export function setupSearchEvents(onSelectCallback, onWashroomFlowCallback) {
     } else if (e.key === 'Enter' && activeDropdownIdx >= 0) {
       e.preventDefault();
       itemsEl[activeDropdownIdx].dispatchEvent(new MouseEvent('mousedown'));
+    } else if (e.key === 'Escape') {
+      dropdownEl.style.display = 'none';
+      $('q').blur();
     }
   });
 }

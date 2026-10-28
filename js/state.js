@@ -60,7 +60,8 @@ export function deserializeRef(str) {
   if (!str) return null;
   if (str.startsWith('wc-')) return { nearest: str.slice(3) };
   const [id, fCode] = str.split('@');
-  const floorIndex = fCode ? FLOOR_CODES.indexOf(fCode) : FLOORS.findIndex(fl => fl.N[id]);
+  const code = fCode === 'GF' ? 'G' : fCode; // accept legacy @GF links
+  const floorIndex = code ? FLOOR_CODES.indexOf(code) : FLOORS.findIndex(fl => fl.N[id]);
   return floorIndex >= 0 && FLOORS[floorIndex] && FLOORS[floorIndex].N[id] ? { f: floorIndex, id } : null;
 }
 

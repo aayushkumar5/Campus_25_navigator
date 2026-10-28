@@ -1,4 +1,4 @@
-const CACHE_NAME = 'c25-v2';
+const CACHE_NAME = 'c25-v3';
 
 // Only cache the shell; hashed assets are cached on-demand
 const SHELL = [

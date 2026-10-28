@@ -1,4 +1,4 @@
-import { $, FLOOR_CODES, FLOOR_NAMES } from './constants.js';
+import { $, FLOOR_CODES, FLOOR_NAMES, M_PER_PX, STEP_LEN_M, WALK_M_PER_MIN } from './constants.js';
 import { getNodeByRef, getNodeLabel, findRouteLegs, FLOORS } from './graph.js';
 import { state, showToast, saveRecent, formatPointName, deserializeRef, generateShareUrl, syncHistoryUrl } from './state.js';
 import { fitViewport, zoomToRoute, setupViewportEvents, dragDistance } from './viewport.js';
@@ -12,6 +12,8 @@ function refreshUI() {
   $('vt').textContent = formatPointName(state.destPoint);
   $('cf').classList.toggle('on', state.activeSelectMode === 's');
   $('ct').classList.toggle('on', state.activeSelectMode === 'd');
+  $('cf').classList.toggle('set', !!state.startPoint);
+  $('ct').classList.toggle('set', !!state.destPoint);
 
   const isMultiFloor = state.startPoint && state.destPoint && !state.destPoint.nearest && state.startPoint.f !== state.destPoint.f;
   $('cn').style.display = isMultiFloor ? 'flex' : 'none';
@@ -135,14 +137,16 @@ function calculateRoute() {
     state.steps = generateStepList(routeLegs, state.startPoint, targetDest);
     state.currentStepIndex = 0;
 
-    const meters = Math.round(routeLegs.cost * 0.15);
-    const timeMinutes = Math.max(1, Math.round(meters / 70));
+    const meters = Math.round(routeLegs.cost * M_PER_PX);
+    const timeMinutes = Math.max(1, Math.round(meters / WALK_M_PER_MIN));
+    const stepCount = Math.max(10, Math.round(meters / STEP_LEN_M / 10) * 10);
+    $('route-dist').textContent = `${meters} m · ~${timeMinutes} min · ~${stepCount} steps`;
     const startNode = getNodeByRef(state.startPoint);
     const destNode = getNodeByRef(targetDest);
 
     $('sum').innerHTML = `
       <b>Route: ${getNodeLabel(startNode)} to ${getNodeLabel(destNode)}</b>
-      <span>Total distance: ${meters} m (${timeMinutes} min walk)${routeLegs.via ? ' via ' + (routeLegs.usedConn === 'lift' ? 'Lift ' : 'Stairs ') + routeLegs.via : ''}${state.stepFreeMode ? ' · step-free' : ''}</span>
+      <span>Total distance: ${meters} m (~${timeMinutes} min · ~${stepCount} steps)${routeLegs.via ? ' via ' + (routeLegs.usedConn === 'lift' ? 'Lift ' : 'Stairs ') + routeLegs.via : ''}${state.stepFreeMode ? ' · step-free' : ''}</span>
     `;
     $('sum').style.display = 'flex';
     $('steps').style.display = 'block';
@@ -206,6 +210,20 @@ function initializeApp() {
     renderFloor(state.currentFloor, onMapNodeClick, onMapConnectorClick);
     refreshUI();
   });
+
+  // Endpoint clear buttons
+  const clearEndpoint = which => {
+    if (which === 's') state.startPoint = null;
+    else state.destPoint = null;
+    state.washroomPickerMode = null;
+    $('wc').innerHTML = '';
+    resetRoute();
+    setActiveSelectionMode(which);
+    renderFloor(state.currentFloor, onMapNodeClick, onMapConnectorClick);
+    refreshUI();
+  };
+  $('cf-x').addEventListener('click', e => { e.stopPropagation(); clearEndpoint('s'); });
+  $('ct-x').addEventListener('click', e => { e.stopPropagation(); clearEndpoint('d'); });
 
   $('sw').addEventListener('click', () => {
     if (state.destPoint && state.destPoint.nearest) {
@@ -309,6 +327,34 @@ function initializeApp() {
     }
   });
 
+
+  // Breadcrumb floor selector trigger
+  const toggleFloorDropdown = e => {
+    e.stopPropagation();
+    const menu = $('fm');
+    const isOpening = menu.style.display !== 'block';
+    menu.style.display = isOpening ? 'block' : 'none';
+    $('fb').setAttribute('aria-expanded', isOpening ? 'true' : 'false');
+  };
+  $('bc-floor').addEventListener('click', toggleFloorDropdown);
+  $('bc-floor').addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleFloorDropdown(e);
+    }
+  });
+
+  // Breadcrumb home or brand click resets to Ground Floor
+  const brandEl = document.querySelector('.brand');
+  if (brandEl) {
+    brandEl.style.cursor = 'pointer';
+    brandEl.addEventListener('click', () => {
+      renderFloor(0, onMapNodeClick, onMapConnectorClick);
+      fitViewport();
+      showToast('Reset to Ground Floor');
+    });
+  }
+
   // Floor dropdown button toggle
   $('fb').addEventListener('click', e => {
     e.stopPropagation();
@@ -331,15 +377,20 @@ function initializeApp() {
 
   // Sidebar toggle
   $('col').addEventListener('click', () => {
-    const isHidden = $('sb').style.display === 'none';
-    $('sb').style.display = isHidden ? 'block' : 'none';
-    $('col').textContent = isHidden ? '<' : '>';
+    const min = $('side').classList.toggle('min');
+    $('col').textContent = min ? '>' : '<';
+    $('col').setAttribute('aria-expanded', String(!min));
+    setTimeout(fitViewport, 250);
   });
 
   // Label toggle
-  $('gear').addEventListener('click', () => $('map').classList.toggle('nolab'));
+    $('gear').addEventListener('click', () => {
+    const isOff = $('map').classList.toggle('nolab');
+    $('gear').setAttribute('aria-pressed', String(!isOff));
+    showToast(isOff ? 'Labels hidden' : 'Labels visible');
+  });
 
-  // Global Keyboard Shortcuts (Escape to close, 1-4 for floors, Enter to calculate)
+  // Global Keyboard Shortcuts (Escape, 1-4 floors, Enter route, / search, +/- zoom, 0 fit, L labels)
   window.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       closeNodeCard();
@@ -347,6 +398,8 @@ function initializeApp() {
       $('fb').setAttribute('aria-expanded', 'false');
       $('dd').style.display = 'none';
       $('qrm').hidden = true;
+      const im = $('infom');
+      if (im) im.hidden = true;
     } else if (document.activeElement.tagName !== 'INPUT') {
       if (['1', '2', '3', '4'].includes(e.key)) {
         const floorIdx = parseInt(e.key, 10) - 1;
@@ -356,11 +409,32 @@ function initializeApp() {
         if (state.startPoint && state.destPoint) {
           calculateRoute();
         }
+      } else if (e.key === '/' || e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        $('q').focus();
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        $('btn-zin').click();
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        $('btn-zout').click();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        fitViewport();
+      } else if (e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        $('gear').click();
+      } else if (e.key === 'ArrowRight' && state.steps && state.steps.length) {
+        e.preventDefault();
+        $('nx').click();
+      } else if (e.key === 'ArrowLeft' && state.steps && state.steps.length) {
+        e.preventDefault();
+        $('pv').click();
       }
     }
   });
 
-  // Share & QR Modal
+  // Share & QR Modal with Web Share API support
   $('shr').addEventListener('click', () => {
     const url = generateShareUrl();
     $('qrl').textContent = url;
@@ -372,8 +446,29 @@ function initializeApp() {
     } catch (e) {
       $('qrb').textContent = 'QR unavailable';
     }
+    if ($('qrs')) {
+      $('qrs').style.display = navigator.share ? 'inline-flex' : 'none';
+    }
     $('qrm').hidden = false;
   });
+
+  if ($('qrs')) {
+    $('qrs').addEventListener('click', async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: 'Campus 25 Navigation Route',
+            text: state.startPoint && state.destPoint
+              ? `Route from ${formatPointName(state.startPoint)} to ${formatPointName(state.destPoint)} in KIIT Campus 25`
+              : 'KIIT Campus 25 Indoor Navigator',
+            url: $('qrl').textContent
+          });
+        } catch (err) {
+          if (err.name !== 'AbortError') showToast('Share failed');
+        }
+      }
+    });
+  }
 
   $('qrx').addEventListener('click', () => $('qrm').hidden = true);
   $('qrm').addEventListener('click', e => { if (e.target.id === 'qrm') $('qrm').hidden = true; });
@@ -386,17 +481,28 @@ function initializeApp() {
     }
   });
 
-  // Register PWA Service Worker
-  if ('serviceWorker' in navigator) {
+  // Help & Campus Info Modal
+  const avatarEl = document.querySelector('.avatar');
+  if (avatarEl) {
+    avatarEl.addEventListener('click', () => { $('infom').hidden = false; });
+  }
+  if ($('infox')) $('infox').addEventListener('click', () => { $('infom').hidden = true; });
+  if ($('infoc')) $('infoc').addEventListener('click', () => { $('infom').hidden = true; });
+  if ($('infom')) $('infom').addEventListener('click', e => { if (e.target.id === 'infom') $('infom').hidden = true; });
+
+  // Register PWA Service Worker (skipped on localhost so dev never serves stale modules)
+  if ('serviceWorker' in navigator && !['localhost', '127.0.0.1'].includes(location.hostname)) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 
   // Initial Floor Render & Deep Link Restore
+  // Capture query first — refreshUI()/syncHistoryUrl() strips params on load
+  const savedQuery = location.search;
   renderFloor(0, onMapNodeClick, onMapConnectorClick);
   fitViewport();
   setActiveSelectionMode('s');
 
-  const urlParams = new URLSearchParams(location.search);
+  const urlParams = new URLSearchParams(savedQuery);
   const startParam = deserializeRef(urlParams.get('from'));
   const destParam = deserializeRef(urlParams.get('to'));
 

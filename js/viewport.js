@@ -5,6 +5,13 @@ export let viewBox = { x: 100, y: 10, w: 1120, h: 920 };
 
 export const applyViewBox = () => svg.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`);
 
+// Pixels covered by the floating sidebar (0 when collapsed / on mobile)
+const sidebarPadPx = () => {
+  const side = $('side');
+  if (!side || window.innerWidth <= 860 || side.classList.contains('min')) return 0;
+  return side.offsetWidth + 28;
+};
+
 export const fitViewport = () => {
   const rect = svg.getBoundingClientRect();
   const aspect = rect.width / (rect.height || 1);
@@ -14,7 +21,9 @@ export const fitViewport = () => {
     viewBox.w = 1120;
     viewBox.h = 1120 / aspect;
   }
-  viewBox.x = 650 - viewBox.w / 2;
+  // Center the plan in the free area right of the sidebar
+  const freeCxPx = (rect.width + sidebarPadPx()) / 2;
+  viewBox.x = 650 - freeCxPx * (viewBox.w / rect.width);
   viewBox.y = 470 - viewBox.h / 2;
   applyViewBox();
 };
@@ -67,6 +76,22 @@ export function zoomToRoute(points) {
 const activePointers = new Map();
 export let dragDistance = 0;
 let pinchDistance = 0;
+
+
+// Center camera on active step point if it moves near or outside viewport edge
+export function centerOnStep(x, y) {
+  const margin = 80;
+  if (
+    x < viewBox.x + margin ||
+    x > viewBox.x + viewBox.w - margin ||
+    y < viewBox.y + margin ||
+    y > viewBox.y + viewBox.h - margin
+  ) {
+    viewBox.x = x - viewBox.w / 2;
+    viewBox.y = y - viewBox.h / 2;
+    applyViewBox();
+  }
+}
 
 export function setupViewportEvents() {
   svg.addEventListener('wheel', e => {

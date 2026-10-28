@@ -3,17 +3,17 @@ export const SVG_NS = 'http://www.w3.org/2000/svg';
 
 // Color & Symbol Maps
 export const COLORS = {
-  a: '#2563eb',
-  b: '#ea580c',
-  t: '#0d9488',
-  r: '#e11d48',
-  c: '#475569',
-  s: '#16a34a',
-  l: '#0891b2',
-  g: '#0284c7',
-  f: '#db2777',
-  e: '#d97706',
-  x: '#0284c7',
+  a: '#3b82f6',
+  b: '#f97316',
+  t: '#8b5cf6',
+  r: '#8b5cf6',
+  c: '#64748b',
+  s: '#f59e0b',
+  l: '#38bdf8',
+  g: '#14b8a6',
+  f: '#ec4899',
+  e: '#22c55e',
+  x: '#a78bfa',
   w: '#06b6d4'
 };
 
@@ -43,4 +43,9 @@ export const ROOM_TYPES = {
 };
 
 export const FLOOR_NAMES = ['Ground Floor', '1st Floor', '2nd Floor', '3rd Floor'];
-export const FLOOR_CODES = ['GF', '1F', '2F', '3F'];
+export const FLOOR_CODES = ['G', '1F', '2F', '3F'];
+
+// Map scale: ~44px between adjacent classrooms ≈ 10 m
+export const M_PER_PX = 0.22;
+export const STEP_LEN_M = 0.75; // average adult stride length
+export const WALK_M_PER_MIN = 70;
