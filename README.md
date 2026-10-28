@@ -1,141 +1,153 @@
-# Campus 25 Navigator 🗺️
+# Campus 25 Navigator
 
-A modern, high-performance indoor navigation, shortest-path routing, and architectural wayfinding web application designed for **KIIT University Campus 25**.
+Indoor navigation and shortest-path routing application for KIIT University Campus 25.
 
-Built with modular ES modules, animated SVG canvas rendering, Dijkstra pathfinding with a Min-Priority Queue, high-resolution architectural blueprint aesthetics, and Progressive Web App (PWA) offline capabilities.
-
----
-
-## ✨ Key Features
-
-### 🧭 Wayfinding & Pathfinding
-- 🏢 **Multi-Floor Topological Routing**: Computes optimal shortest paths across Ground (G), 1st (1F), 2nd (2F), and 3rd (3F) floors.
-- ⚡ **Optimized Dijkstra with Min-Priority Queue**: $O((V+E)\log V)$ shortest-path calculations across dense corridor graphs.
-- 🛗 **Connector Preferences & Step-Free Mode**: Choose between Stairs and Lifts, or toggle Step-Free accessibility mode (routes exclusively via elevators).
-- 🔄 **Smart Alternate Fallback**: Automatically falls back to an alternate connector if the selected mode (e.g. stairs) is unavailable between specific floors.
-- 🚶 **Turn-by-Turn Navigation & Camera Tracking**: Step-by-step walking instructions with 2D cross-product turn detection (left/right/straight), distance in meters, walk time, step counts, and **automatic camera panning (`centerOnStep`)** to keep the user focused on their current leg.
-- 👣 **Human Stride / Footstep Estimation**: Calibrated stride length calculation (`STEP_LEN_M = 0.75m`, `M_PER_PX = 0.22`), displaying real-world walk stats: e.g. `45 m · ~1 min · ~60 steps`.
-
-### 🎨 Architectural Blueprint UI / UX
-- 🌌 **Midnight Blueprint Design System**: High-contrast dark theme (`#050c18` background, `#0a1526` glass panels, electric cyan `#22d3ee`, and KIIT neon green `#22c55e`).
-- 🏛️ **Realistic Corridor Bands**: Double-layered hallway geometry with physical thickness (`11px` dark navy path + dashed center guideline).
-- 🏷️ **Wing Watermarks**: Subtle architectural watermarks (`A`, `B`, `C`) for instant campus orientation.
-- 📍 **3D Teardrop Pins & Target Rings**: Elevated destination pins and glowing target rings.
-- 🏷️ **Embedded In-Tile Labels**: Centered room numbers inside room tiles, with one-click room label toggling (`L`).
-- ⚡ **Animated Marching-Ants Route**: Continuous directional flow animation (`@keyframes route-flow`) showing the walking path.
-- 🚨 **Pulsing Amenity Beacons**: Alternating breathing glow animation (`@keyframes blink-wr`) highlights matching washrooms, stairs, and water points.
-- 📱 **Mobile Bottom Sheet**: On mobile devices ($\le$ 860px), the sidebar transforms into an ergonomic bottom sheet leaving the map touch-friendly.
-
-### 🔍 Search & Interactive Controls
-- 🔎 **Fuzzy Multi-Floor Search**: Real-time debounced search indexing classrooms, computer labs, faculty cabins, seminar halls, washrooms, and amenities.
-- ❌ **1-Click Endpoint Clear & Re-Arm**: Individual clear (`✕`) buttons on "From" and "To" inputs that reset the slot and immediately re-activate map selection mode.
-- 🚻 **Guided Washroom & Amenity Flows**: Fast-route to the nearest Gents / Ladies washrooms, water coolers, stairs, elevators, or exits.
-- 🏷️ **Interactive Breadcrumbs**: Live breadcrumb (`Campus 25 > Ground Floor`) with direct one-click floor switching and home reset.
-- ℹ️ **Campus 25 Guide Modal**: Quick-reference guide featuring campus wing directories, keyboard shortcuts, and accessibility info.
-
-### 📲 Sharing & PWA Offline Capabilities
-- 🔗 **Deep-Linking & Parameter Sync**: Full state preservation via URLs (`?from=...&to=...&via=...`) with automatic URL query preservation.
-- 📱 **Native Web Share API + Offline QR Codes**: Invokes native mobile sharing (`navigator.share`) on mobile devices, falling back to scalable vector QR codes on desktop.
-- 📦 **Offline PWA**: Service Worker caching with automatic localhost bypass to ensure development updates are never cached.
+Built with vanilla ES modules, custom SVG vector rendering, Min-Priority Queue Dijkstra pathfinding, and an offline-first PWA architecture. Zero UI framework dependencies.
 
 ---
 
-## 🏗️ Architecture & Module Structure
+## Overview
+
+Campus 25 Navigator provides topological indoor routing across four levels (Ground, 1st, 2nd, and 3rd floors). The application maps multi-building corridor graphs, models vertical connectors (stairs and elevators), and delivers turn-by-turn walking guidance with real-world distance and step estimations.
+
+---
+
+## Technical Highlights
+
+### Pathfinding & Graph Modeling
+- **Graph Topology**: Corridors are modeled as planar line segments with automatic orthogonal room snapping and intersection detection.
+- **Priority Queue Dijkstra**: Shortest paths computed in $O((V + E) \log V)$ time using a custom MinHeap implementation.
+- **Multi-Floor Routing**: Computes compound routes across floors using vertical connector nodes (stairs and elevators).
+- **Accessibility / Step-Free Mode**: Constrains vertical pathfinding strictly to elevator shafts for wheelchair accessibility.
+- **Connector Fallback**: Automatically re-routes via alternate vertical connectors if the preferred connector is unavailable between selected floors.
+
+### SVG Canvas & Viewport Engine
+- **Vector Rendering**: Direct DOM SVG rendering with hardware-accelerated transforms for zero-dependency pan, scroll, and pinch-to-zoom.
+- **Architectural Floor Plan**: Multi-layered corridor stroke styling, visual wing watermarks (Blocks A, B, C), in-tile room labeling, and dynamic destination markers.
+- **Camera Tracking**: Viewport automatically offsets to accommodate floating sidebar panels on desktop and dynamically pans (`centerOnStep`) to track active navigation steps.
+- **Animated Route Polylines**: CSS stroke-dashoffset animations indicate travel direction along the calculated path.
+
+### Search & Discovery
+- **Fuzzy Search Index**: Debounced client-side index covering classrooms, lecture theatres, computer labs, faculty offices, and common amenities.
+- **Quick-Find Amenities**: Direct heuristic routing to the nearest restrooms (Gents/Ladies), water coolers, elevators, stairs, or building exits from the user's current origin.
+- **Deep-Linking**: Full route and location state serialization via URL search parameters (`?from=...&to=...&via=...`) with backward compatibility for legacy floor codes.
+
+### Offline & PWA Architecture
+- **Service Worker Cache**: Cache-first strategy for app shell, scripts, styles, and static assets via CacheStorage API.
+- **Client-Side QR Code Generation**: Pure JavaScript vector QR code rendering for offline route transfer without third-party network requests.
+- **Web Share Integration**: Uses native system share sheet where available with automatic fallback to QR display.
+
+---
+
+## Architecture & Project Structure
 
 ```
 Campus_25_navigator/
 ├── css/
-│   └── style.css            # Midnight blueprint design system, animations, responsive layout
+│   └── style.css            # Custom CSS variables, responsive layout, animations
 ├── js/
-│   ├── constants.js         # Color tokens, scale factors (M_PER_PX, STEP_LEN_M), floor maps
-│   ├── data.js              # Campus coordinate nodes & corridor polyline sequences
-│   ├── graph.js             # Graph topology, MinHeap Priority Queue & Dijkstra routing
-│   ├── main.js              # Application boot, deep-link sync, event orchestration & shortcuts
-│   ├── renderer.js          # SVG canvas rendering, corridor bands, glyph chips & pins
-│   ├── search.js            # Debounced search, keyboard nav & washroom chip flows
-│   ├── state.js             # Central reactive state store, toast manager & URL serialization
-│   ├── steps.js             # Turn-by-turn simplification, step progress & camera tracking
-│   └── viewport.js          # Pan, pinch-to-zoom, sidebar-aware auto-centering & camera tracking
+│   ├── constants.js         # Design tokens, scale factors, floor metadata
+│   ├── data.js              # Raw node coordinate matrix and corridor geometries
+│   ├── graph.js             # MinHeap PriorityQueue, graph builder, Dijkstra solver
+│   ├── main.js              # App lifecycle, event orchestration, deep-link handling
+│   ├── renderer.js          # SVG canvas rendering, corridor paths, facility glyphs
+│   ├── search.js            # Debounced search, keyboard navigation, amenity flows
+│   ├── state.js             # Reactive application state, local storage, URL sync
+│   ├── steps.js             # Vector-based turn simplification and step generation
+│   └── viewport.js          # Pointer gesture tracking, pan/zoom transforms, camera centering
 ├── public/
-│   ├── icon.svg             # High-resolution 512x512 application icon
-│   ├── qrcode.js            # Offline vector QR code generator
-│   └── sw.js                # Service Worker for offline PWA caching
-├── index.html               # Semantic HTML5 shell, top header & SVG viewport
-├── manifest.webmanifest     # PWA Web App Manifest
-├── vercel.json              # Production headers, caching rules & SPA rewrites
-└── vite.config.js           # Vite build pipeline & asset bundling
+│   ├── icon.svg             # Application SVG icon
+│   ├── qrcode.js            # Standalone vector QR code engine
+│   └── sw.js                # Offline caching service worker (v3)
+├── index.html               # Semantic HTML shell and SVG canvas container
+├── manifest.webmanifest     # PWA manifest
+├── vercel.json              # Deployment caching rules and SPA rewrites
+└── vite.config.js           # Vite development and build configuration
 ```
 
 ---
 
-## 🚀 Getting Started
+## Calibration Constants
+
+Scale and walking metrics are configured in `js/constants.js`:
+
+```javascript
+// Map scale: ~44px between adjacent rooms ≈ 10 meters
+export const M_PER_PX = 0.22;
+
+// Average adult stride length in meters
+export const STEP_LEN_M = 0.75;
+
+// Average walking speed (meters per minute)
+export const WALK_M_PER_MIN = 70;
+```
+
+---
+
+## Keyboard Controls & Gestures
+
+| Key / Gesture | Action |
+|---|---|
+| `1`, `2`, `3`, `4` | Switch to Ground, 1st, 2nd, or 3rd floor |
+| `/` or `F` | Focus search input |
+| `Enter` | Execute route search (when endpoints are set) or select search item |
+| `Escape` | Dismiss active dialogs, search dropdowns, or node details |
+| `←` / `→` | Step backward / forward through navigation directions |
+| `L` | Toggle room labels on canvas |
+| `+` / `-` | Zoom canvas in / out |
+| `0` | Fit floor plan to viewport |
+| `Click + Drag` | Pan canvas (mouse) or single-finger drag (touch) |
+| `Pinch` | Two-finger pinch-to-zoom |
+
+---
+
+## Campus Directory
+
+- **Block A**: School of Computer Engineering, computing laboratories, classrooms.
+- **Block B**: Engineering laboratories, core lecture theatres, central corridor junction.
+- **Block C**: Faculty offices, administrative cabins, seminar halls, examination halls.
+
+---
+
+## Development
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- `npm`
+- Node.js 18+
+- npm
 
-### Installation & Local Development
+### Local Setup
 
 ```bash
-# Clone the repository
 git clone https://github.com/aayushkumar5/Campus_25_navigator.git
 cd Campus_25_navigator
-
-# Install dependencies
 npm install
-
-# Start local dev server
 npm run dev
 ```
+
+The development server runs at `http://localhost:5173`. Service Worker caching is automatically disabled on `localhost` and `127.0.0.1` to prevent stale module caching during development.
 
 ### Production Build
 
 ```bash
-# Build optimized production bundle to /dist
 npm run build
-
-# Preview production build locally
 npm run preview
 ```
 
----
-
-## ⌨️ Shortcuts & Gestures
-
-| Action | Shortcut / Control |
-|---|---|
-| **Switch Floors** | `1`, `2`, `3`, `4` keys or Floor dropdown / Breadcrumb |
-| **Search Locations** | `/` or `F` key (focuses search bar) |
-| **Calculate Route** | `Enter` (when endpoints are set) or "Find route" button |
-| **Clear / Dismiss** | `Escape` key (closes popups, search dropdown, modals) |
-| **Navigate Directions** | `←` (Prev step) / `→` (Next step) or On-screen arrows |
-| **Toggle Room Labels** | `L` key or "Labels" button |
-| **Zoom Canvas** | Mouse scroll, `+` / `-` keys, or Two-finger pinch |
-| **Auto-Fit Viewport** | `0` key or "Fit" button |
-| **Pan Canvas** | Click & drag or Single-finger swipe |
-| **Open Campus Guide** | Click student avatar icon |
-| **Share Route** | "Share" button (Native OS share sheet or SVG QR code) |
+Static assets are compiled to `dist/`.
 
 ---
 
-## 🏢 Campus 25 Directory
+## Deployment
 
-- **Block A**: School of Computer Engineering, advanced computing laboratories, theory classrooms.
-- **Block B**: Core engineering laboratories, large lecture theatres, central corridors.
-- **Block C**: Faculty cabins, administrative offices, seminar halls, examination centers.
+The application is statically deployable to any CDN or hosting provider (Vercel, Cloudflare Pages, Netlify, GitHub Pages).
 
----
-
-## 🌐 Deployment
-
-The project is pre-configured for instant zero-config deployment on **Vercel**, **Netlify**, or **Cloudflare Pages**:
-
-- **Framework Preset**: Vite
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
+Configuration file `vercel.json` provides:
+- Immutable cache headers (`max-age=31536000, immutable`) for static assets in `dist/assets/`.
+- No-cache headers (`max-age=0, must-revalidate`) for `sw.js` and `manifest.webmanifest`.
+- Clean single-page application URL rewrites.
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
